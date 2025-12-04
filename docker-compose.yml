@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: user_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: user_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+
+  # Kitex RPC 服务
+  kitex_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.kitex
+    container_name: kitex_service
+    restart: always
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: user_db
+      RPC_HOST: 0.0.0.0
+      RPC_PORT: 8888
+    ports:
+      - "8888:8888"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  # Hertz HTTP 服务
+  hertz_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.hertz
+    container_name: hertz_service
+    restart: always
+    environment:
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 8080
+      RPC_HOST: kitex_service
+      RPC_PORT: 8888
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kitex_service
+    networks:
+      - app_network
+
+volumes:
+  mysql_data:
+
+networks:
+  app_network:
+    driver: bridge
