@@ -1,6 +1,31 @@
 version: '3.8'
 
 services:
+  # Etcd 服务注册与发现
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.9
+    container_name: etcd
+    restart: always
+    environment:
+      - ETCD_NAME=etcd0
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # MySQL 数据库
   mysql:
     image: mysql:8.0
@@ -35,10 +60,15 @@ services:
       MYSQL_DATABASE: user_db
       RPC_HOST: 0.0.0.0
       RPC_PORT: 8888
+      RPC_SERVICE_NAME: user_service
+      ETCD_ENDPOINTS: etcd:2379
+      REGISTRY_ENABLE: "true"
     ports:
       - "8888:8888"
     depends_on:
       mysql:
+        condition: service_healthy
+      etcd:
         condition: service_healthy
     networks:
       - app_network
@@ -53,12 +83,14 @@ services:
     environment:
       HTTP_HOST: 0.0.0.0
       HTTP_PORT: 8080
-      RPC_HOST: kitex_service
-      RPC_PORT: 8888
+      RPC_SERVICE_NAME: user_service
+      ETCD_ENDPOINTS: etcd:2379
+      REGISTRY_ENABLE: "true"
     ports:
       - "8080:8080"
     depends_on:
       - kitex_service
+      - etcd
     networks:
       - app_network
 

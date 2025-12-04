@@ -45,7 +45,7 @@ func CreateUser(ctx context.Context, c *app.RequestContext) {
 	}
 
 	// 构造响应
-	resp := user.CreateUserResponse{
+	resp := &user.CreateUserResponse{
 		Code:    rpcResp.Code,
 		Message: rpcResp.Message,
 	}
@@ -96,7 +96,7 @@ func GetUser(ctx context.Context, c *app.RequestContext) {
 	}
 
 	// 构造响应
-	resp := user.GetUserResponse{
+	resp := &user.GetUserResponse{
 		Code:    rpcResp.Code,
 		Message: rpcResp.Message,
 	}
@@ -162,7 +162,7 @@ func UpdateUser(ctx context.Context, c *app.RequestContext) {
 	}
 
 	// 构造响应
-	resp := user.BaseResponse{
+	resp := &user.UpdateUserResponse{
 		Code:    rpcResp.Code,
 		Message: rpcResp.Message,
 	}
@@ -204,7 +204,7 @@ func DeleteUser(ctx context.Context, c *app.RequestContext) {
 	}
 
 	// 构造响应
-	resp := user.BaseResponse{
+	resp := &user.DeleteUserResponse{
 		Code:    rpcResp.Code,
 		Message: rpcResp.Message,
 	}
@@ -250,7 +250,7 @@ func ListUsers(ctx context.Context, c *app.RequestContext) {
 	}
 
 	// 构造响应
-	resp := user.ListUsersResponse{
+	resp := &user.ListUsersResponse{
 		Code:    rpcResp.Code,
 		Message: rpcResp.Message,
 	}

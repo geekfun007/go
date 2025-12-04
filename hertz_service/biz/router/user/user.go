@@ -4,7 +4,6 @@ package user
 
 import (
 	"github.com/cloudwego/hertz/pkg/app/server"
-	user "github.com/example/hertz-kitex-demo/biz/handler/user"
 )
 
 /*
@@ -15,5 +14,5 @@ import (
 
 // Register register routes based on the IDL 'api.${HTTP Method}' annotation.
 func Register(r *server.Hertz) {
-
+	// Routes registered in main.go
 }

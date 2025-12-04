@@ -1,19 +1,23 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
 # 安装依赖
 RUN apk add --no-cache git
 
-# 复制 go.mod 和 go.sum
+# 复制根目录的 go.mod（包含 kitex_gen）
 COPY go.mod go.sum ./
 RUN go mod download
 
-# 复制源代码
-COPY . .
+# 复制 kitex_gen
+COPY kitex_gen ./kitex_gen
+
+# 复制 hertz_service
+COPY hertz_service ./hertz_service
 
 # 构建
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/hertz_service ./hertz_service
+WORKDIR /app/hertz_service
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/hertz_service .
 
 # 运行阶段
 FROM alpine:latest
@@ -22,7 +26,7 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-COPY --from=builder /app/hertz_service .
+COPY --from=builder /app/bin/hertz_service .
 
 EXPOSE 8080
 
