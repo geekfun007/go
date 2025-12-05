@@ -381,9 +381,9 @@ func (p *User) String() string {
 
 // 创建用户请求
 type CreateUserRequest struct {
-	Username string  `thrift:"Username,1,required" json:"username" form:"username" query:"username" vd:"len($) > 0 && len($) <= 64"`
-	Email    string  `thrift:"Email,2,required" json:"email" form:"email" query:"email" vd:"len($) > 0 && len($) <= 128"`
-	Phone    *string `thrift:"Phone,3,optional" json:"phone,omitempty" form:"phone" query:"phone" vd:"len($) == 0 || len($) == 11"`
+	Username string  `thrift:"Username,1,required" json:"username" form:"username" vd:"len($) > 0 && len($) <= 64"`
+	Email    string  `thrift:"Email,2,required" json:"email" form:"email" vd:"len($) > 0 && len($) <= 128"`
+	Phone    *string `thrift:"Phone,3,optional" json:"phone,omitempty" form:"phone" vd:"len($) == 0 || len($) == 11"`
 }
 
 func NewCreateUserRequest() *CreateUserRequest {
@@ -881,7 +881,7 @@ func (p *CreateUserResponse) String() string {
 
 // 获取用户请求
 type GetUserRequest struct {
-	UserID int64 `thrift:"UserID,1,required" json:"user_id" path:"id" vd:"$ > 0" form:"UserID,required" query:"UserID,required"`
+	UserID int64 `thrift:"UserID,1,required" json:"user_id" path:"id" vd:"$ > 0"`
 }
 
 func NewGetUserRequest() *GetUserRequest {
@@ -1271,10 +1271,10 @@ func (p *GetUserResponse) String() string {
 
 // 更新用户请求
 type UpdateUserRequest struct {
-	UserID   int64   `thrift:"UserID,1,required" json:"user_id" path:"id" vd:"$ > 0" form:"UserID,required" query:"UserID,required"`
-	Username *string `thrift:"Username,2,optional" json:"username,omitempty" form:"username" vd:"len($) == 0 || len($) <= 64" query:"Username" `
-	Email    *string `thrift:"Email,3,optional" json:"email,omitempty" form:"email" vd:"len($) == 0 || len($) <= 128" query:"Email" `
-	Phone    *string `thrift:"Phone,4,optional" json:"phone,omitempty" form:"phone" vd:"len($) == 0 || len($) == 11" query:"Phone" `
+	UserID   int64   `thrift:"UserID,1,required" json:"user_id" path:"id" vd:"$ > 0"`
+	Username *string `thrift:"Username,2,optional" json:"username,omitempty" form:"username" vd:"len($) == 0 || len($) <= 64"`
+	Email    *string `thrift:"Email,3,optional" json:"email,omitempty" form:"email" vd:"len($) == 0 || len($) <= 128"`
+	Phone    *string `thrift:"Phone,4,optional" json:"phone,omitempty" form:"phone" vd:"len($) == 0 || len($) == 11"`
 }
 
 func NewUpdateUserRequest() *UpdateUserRequest {
@@ -1778,7 +1778,7 @@ func (p *UpdateUserResponse) String() string {
 
 // 删除用户请求
 type DeleteUserRequest struct {
-	UserID int64 `thrift:"UserID,1,required" json:"user_id" path:"id" vd:"$ > 0" form:"UserID,required" query:"UserID,required"`
+	UserID int64 `thrift:"UserID,1,required" json:"user_id" path:"id" vd:"$ > 0"`
 }
 
 func NewDeleteUserRequest() *DeleteUserRequest {
@@ -2615,14 +2615,15 @@ func (p *ListUsersResponse) String() string {
 
 // 用户服务
 type UserService interface {
+	// 创建用户
 	CreateUser(ctx context.Context, req *CreateUserRequest) (r *CreateUserResponse, err error)
-
+	// 获取用户详情
 	GetUser(ctx context.Context, req *GetUserRequest) (r *GetUserResponse, err error)
-
+	// 更新用户信息
 	UpdateUser(ctx context.Context, req *UpdateUserRequest) (r *UpdateUserResponse, err error)
-
+	// 删除用户
 	DeleteUser(ctx context.Context, req *DeleteUserRequest) (r *DeleteUserResponse, err error)
-
+	// 获取用户列表
 	ListUsers(ctx context.Context, req *ListUsersRequest) (r *ListUsersResponse, err error)
 }
 

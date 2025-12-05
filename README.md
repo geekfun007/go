@@ -453,14 +453,31 @@ echo $MYSQL_HOST $MYSQL_PORT $MYSQL_USER
 - [ ] 负载均衡策略
 - [ ] 优雅关闭
 
+## 📚 本项目文档
+
+- [IDL_ANNOTATIONS.md](./IDL_ANNOTATIONS.md) - **IDL 注解完整说明**（新增）
+  - 字段注解（api.body, api.query, api.path 等）
+  - 方法注解（api.get, api.post, api.put 等）
+  - 自动路由生成说明
+  - 完整示例和最佳实践
+- [IDL_VALIDATION.md](./IDL_VALIDATION.md) - IDL 字段定义与校验规则
+- [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 架构设计详解
+- [QUICKSTART.md](./QUICKSTART.md) - 快速开始指南
+- [FEATURES.md](./FEATURES.md) - 项目特性说明
+- [CHANGELOG.md](./CHANGELOG.md) - 更新日志
+
 ## 📖 参考资料
 
+### CloudWeGo 官方文档
 - [CloudWeGo 官方文档](https://www.cloudwego.io/)
 - [Kitex 文档](https://www.cloudwego.io/docs/kitex/)
 - [Kitex CLI 工具](https://www.cloudwego.io/docs/kitex/tutorials/code-gen/code_generation/)
 - [Hertz 文档](https://www.cloudwego.io/docs/hertz/)
 - [Hz CLI 工具](https://www.cloudwego.io/docs/hertz/tutorials/toolkit/toolkit/)
+- [**Hertz 注解说明**](https://www.cloudwego.io/zh/docs/hertz/tutorials/toolkit/annotation/) - 本项目参考
 - [服务注册与发现](https://www.cloudwego.io/docs/kitex/tutorials/service-governance/service_discovery/)
+
+### 其他技术文档
 - [Thrift 官方文档](https://thrift.apache.org/)
 - [Etcd 官方文档](https://etcd.io/)
 - [GORM 文档](https://gorm.io/)
@@ -468,9 +485,11 @@ echo $MYSQL_HOST $MYSQL_PORT $MYSQL_USER
 ## ✅ 项目状态
 
 - ✅ Thrift IDL 定义（首字母大写）
+- ✅ **IDL 注解支持**（api.get/post/put/delete + api.body/query/path）
+- ✅ **自动路由生成**（基于 IDL 注解）
 - ✅ Kitex CLI 自动生成 RPC 服务
 - ✅ Hz CLI 自动生成 HTTP 服务
-- ✅ 参数绑定与校验（go.tag + vd）
+- ✅ 参数绑定与校验（go.tag + vd + api 注解）
 - ✅ Kitex RPC 服务实现
 - ✅ Hertz HTTP 服务实现
 - ✅ Etcd 服务注册与发现

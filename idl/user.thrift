@@ -12,9 +12,9 @@ struct User {
 
 // 创建用户请求
 struct CreateUserRequest {
-    1: required string Username (go.tag = "json:\"username\" form:\"username\" query:\"username\" vd:\"len($) > 0 && len($) <= 64\"")
-    2: required string Email (go.tag = "json:\"email\" form:\"email\" query:\"email\" vd:\"len($) > 0 && len($) <= 128\"")
-    3: optional string Phone (go.tag = "json:\"phone,omitempty\" form:\"phone\" query:\"phone\" vd:\"len($) == 0 || len($) == 11\"")
+    1: required string Username (go.tag = "json:\"username\" form:\"username\" vd:\"len($) > 0 && len($) <= 64\"", api.body = "username")
+    2: required string Email (go.tag = "json:\"email\" form:\"email\" vd:\"len($) > 0 && len($) <= 128\"", api.body = "email")
+    3: optional string Phone (go.tag = "json:\"phone,omitempty\" form:\"phone\" vd:\"len($) == 0 || len($) == 11\"", api.body = "phone")
 }
 
 // 创建用户响应
@@ -26,7 +26,7 @@ struct CreateUserResponse {
 
 // 获取用户请求
 struct GetUserRequest {
-    1: required i64 UserID (go.tag = "json:\"user_id\" path:\"id\" vd:\"$ > 0\"")
+    1: required i64 UserID (go.tag = "json:\"user_id\" path:\"id\" vd:\"$ > 0\"", api.path = "id")
 }
 
 // 获取用户响应
@@ -38,10 +38,10 @@ struct GetUserResponse {
 
 // 更新用户请求
 struct UpdateUserRequest {
-    1: required i64 UserID (go.tag = "json:\"user_id\" path:\"id\" vd:\"$ > 0\"")
-    2: optional string Username (go.tag = "json:\"username,omitempty\" form:\"username\" vd:\"len($) == 0 || len($) <= 64\"")
-    3: optional string Email (go.tag = "json:\"email,omitempty\" form:\"email\" vd:\"len($) == 0 || len($) <= 128\"")
-    4: optional string Phone (go.tag = "json:\"phone,omitempty\" form:\"phone\" vd:\"len($) == 0 || len($) == 11\"")
+    1: required i64 UserID (go.tag = "json:\"user_id\" path:\"id\" vd:\"$ > 0\"", api.path = "id")
+    2: optional string Username (go.tag = "json:\"username,omitempty\" form:\"username\" vd:\"len($) == 0 || len($) <= 64\"", api.body = "username")
+    3: optional string Email (go.tag = "json:\"email,omitempty\" form:\"email\" vd:\"len($) == 0 || len($) <= 128\"", api.body = "email")
+    4: optional string Phone (go.tag = "json:\"phone,omitempty\" form:\"phone\" vd:\"len($) == 0 || len($) == 11\"", api.body = "phone")
 }
 
 // 更新用户响应
@@ -52,7 +52,7 @@ struct UpdateUserResponse {
 
 // 删除用户请求
 struct DeleteUserRequest {
-    1: required i64 UserID (go.tag = "json:\"user_id\" path:\"id\" vd:\"$ > 0\"")
+    1: required i64 UserID (go.tag = "json:\"user_id\" path:\"id\" vd:\"$ > 0\"", api.path = "id")
 }
 
 // 删除用户响应
@@ -63,8 +63,8 @@ struct DeleteUserResponse {
 
 // 用户列表请求
 struct ListUsersRequest {
-    1: required i32 Page (go.tag = "json:\"page\" form:\"page\" query:\"page\" vd:\"$ > 0\"")
-    2: required i32 PageSize (go.tag = "json:\"page_size\" form:\"page_size\" query:\"page_size\" vd:\"$ > 0 && $ <= 100\"")
+    1: required i32 Page (go.tag = "json:\"page\" form:\"page\" query:\"page\" vd:\"$ > 0\"", api.query = "page")
+    2: required i32 PageSize (go.tag = "json:\"page_size\" form:\"page_size\" query:\"page_size\" vd:\"$ > 0 && $ <= 100\"", api.query = "page_size")
 }
 
 // 用户列表响应
@@ -77,9 +77,18 @@ struct ListUsersResponse {
 
 // 用户服务
 service UserService {
-    CreateUserResponse CreateUser(1: CreateUserRequest req)
-    GetUserResponse GetUser(1: GetUserRequest req)
-    UpdateUserResponse UpdateUser(1: UpdateUserRequest req)
-    DeleteUserResponse DeleteUser(1: DeleteUserRequest req)
-    ListUsersResponse ListUsers(1: ListUsersRequest req)
+    // 创建用户
+    CreateUserResponse CreateUser(1: CreateUserRequest req) (api.post = "/api/v1/users", api.serializer = "json")
+    
+    // 获取用户详情
+    GetUserResponse GetUser(1: GetUserRequest req) (api.get = "/api/v1/users/:id", api.serializer = "json")
+    
+    // 更新用户信息
+    UpdateUserResponse UpdateUser(1: UpdateUserRequest req) (api.put = "/api/v1/users/:id", api.serializer = "json")
+    
+    // 删除用户
+    DeleteUserResponse DeleteUser(1: DeleteUserRequest req) (api.delete = "/api/v1/users/:id", api.serializer = "json")
+    
+    // 获取用户列表
+    ListUsersResponse ListUsers(1: ListUsersRequest req) (api.get = "/api/v1/users", api.serializer = "json")
 }

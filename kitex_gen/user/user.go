@@ -82,9 +82,9 @@ var fieldIDToName_User = map[int16]string{
 }
 
 type CreateUserRequest struct {
-	Username string  `thrift:"Username,1,required" frugal:"1,required,string" json:"username" form:"username" query:"username" vd:"len($) > 0 && len($) <= 64"`
-	Email    string  `thrift:"Email,2,required" frugal:"2,required,string" json:"email" form:"email" query:"email" vd:"len($) > 0 && len($) <= 128"`
-	Phone    *string `thrift:"Phone,3,optional" frugal:"3,optional,string" json:"phone,omitempty" form:"phone" query:"phone" vd:"len($) == 0 || len($) == 11"`
+	Username string  `thrift:"Username,1,required" frugal:"1,required,string" json:"username" form:"username" vd:"len($) > 0 && len($) <= 64"`
+	Email    string  `thrift:"Email,2,required" frugal:"2,required,string" json:"email" form:"email" vd:"len($) > 0 && len($) <= 128"`
+	Phone    *string `thrift:"Phone,3,optional" frugal:"3,optional,string" json:"phone,omitempty" form:"phone" vd:"len($) == 0 || len($) == 11"`
 }
 
 func NewCreateUserRequest() *CreateUserRequest {

@@ -4,6 +4,7 @@ package user
 
 import (
 	"github.com/cloudwego/hertz/pkg/app/server"
+	user "github.com/example/hertz-kitex-demo/hertz_service/biz/handler/user"
 )
 
 /*
@@ -14,5 +15,18 @@ import (
 
 // Register register routes based on the IDL 'api.${HTTP Method}' annotation.
 func Register(r *server.Hertz) {
-	// Routes are registered in main.go via custom registerRoutes function
+
+	root := r.Group("/", rootMw()...)
+	{
+		_api := root.Group("/api", _apiMw()...)
+		{
+			_v1 := _api.Group("/v1", _v1Mw()...)
+			_v1.GET("/users", append(_listusersMw(), user.ListUsers)...)
+			_v1.POST("/users", append(_createuserMw(), user.CreateUser)...)
+			_users := _v1.Group("/users", _usersMw()...)
+			_users.DELETE("/:id", append(_deleteuserMw(), user.DeleteUser)...)
+			_users.GET("/:id", append(_getuserMw(), user.GetUser)...)
+			_users.PUT("/:id", append(_updateuserMw(), user.UpdateUser)...)
+		}
+	}
 }
