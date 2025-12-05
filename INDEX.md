@@ -8,13 +8,15 @@
 
 ### 新手入门
 1. 📖 [快速开始](QUICK_START.md) - 5分钟上手
-2. 📚 [主文档](README.md) - 完整教程
-3. 📋 [示例索引](EXAMPLES.md) - 查找示例
+2. 💡 [核心思路](ASYNC_CORE_CONCEPTS.md) - 理解异步本质 ⚡新增
+3. 📚 [主文档](README.md) - 完整教程
+4. 📋 [示例索引](EXAMPLES.md) - 查找示例
 
 ### 经验开发者
-1. 🔍 [示例索引](EXAMPLES.md) - 按主题查找
-2. 💡 [最佳实践](README.md#最佳实践) - 生产环境指南
-3. 🎯 [高级示例](EXAMPLES.md#高级--advanced) - 复杂应用
+1. 🔄 [模式对比](PATTERNS_COMPARISON.md) - 深度对比分析 ⚡新增
+2. 🔍 [示例索引](EXAMPLES.md) - 按主题查找
+3. 💡 [最佳实践](README.md#最佳实践) - 生产环境指南
+4. 🎯 [高级示例](EXAMPLES.md#高级--advanced) - 复杂应用
 
 ### 贡献者
 1. 📝 [贡献指南](CONTRIBUTING.md) - 如何贡献
@@ -31,6 +33,8 @@
 ├── 📚 文档 / Documentation
 │   ├── README.md              ⭐ 主文档（从这里开始）
 │   ├── QUICK_START.md         🚀 快速开始指南
+│   ├── ASYNC_CORE_CONCEPTS.md 💡 异步核心思路（新增！）
+│   ├── PATTERNS_COMPARISON.md 🔄 模式深度对比（新增！）
 │   ├── EXAMPLES.md            📋 示例索引
 │   ├── CONTRIBUTING.md        🤝 贡献指南
 │   ├── PROJECT_SUMMARY.md     📊 项目总结
