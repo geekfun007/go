@@ -54,7 +54,11 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, req *user.CreateUserRe
 	dbUser := &model.User{
 		Username: req.Username,
 		Email:    req.Email,
-		Phone:    req.Phone,
+	}
+	
+	// Phone 是 optional 字段
+	if req.Phone != nil {
+		dbUser.Phone = *req.Phone
 	}
 
 	if err = s.userDAL.CreateUser(ctx, dbUser); err != nil {
@@ -68,7 +72,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, req *user.CreateUserRe
 	resp.Code = 0
 	resp.Message = "success"
 	resp.User = &user.User{
-		Id:        dbUser.ID,
+		ID:        dbUser.ID,
 		Username:  dbUser.Username,
 		Email:     dbUser.Email,
 		Phone:     dbUser.Phone,
@@ -83,13 +87,13 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, req *user.CreateUserRe
 func (s *UserServiceImpl) GetUser(ctx context.Context, req *user.GetUserRequest) (resp *user.GetUserResponse, err error) {
 	resp = &user.GetUserResponse{}
 
-	if req.UserId <= 0 {
+	if req.UserID <= 0 {
 		resp.Code = 400
 		resp.Message = "invalid user_id"
 		return resp, nil
 	}
 
-	dbUser, err := s.userDAL.GetUserByID(ctx, req.UserId)
+	dbUser, err := s.userDAL.GetUserByID(ctx, req.UserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			resp.Code = 404
@@ -105,7 +109,7 @@ func (s *UserServiceImpl) GetUser(ctx context.Context, req *user.GetUserRequest)
 	resp.Code = 0
 	resp.Message = "success"
 	resp.User = &user.User{
-		Id:        dbUser.ID,
+		ID:        dbUser.ID,
 		Username:  dbUser.Username,
 		Email:     dbUser.Email,
 		Phone:     dbUser.Phone,
@@ -120,14 +124,14 @@ func (s *UserServiceImpl) GetUser(ctx context.Context, req *user.GetUserRequest)
 func (s *UserServiceImpl) UpdateUser(ctx context.Context, req *user.UpdateUserRequest) (resp *user.UpdateUserResponse, err error) {
 	resp = &user.UpdateUserResponse{}
 
-	if req.UserId <= 0 {
+	if req.UserID <= 0 {
 		resp.Code = 400
 		resp.Message = "invalid user_id"
 		return resp, nil
 	}
 
 	// 检查用户是否存在
-	_, err = s.userDAL.GetUserByID(ctx, req.UserId)
+	_, err = s.userDAL.GetUserByID(ctx, req.UserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			resp.Code = 404
@@ -159,7 +163,7 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, req *user.UpdateUserRe
 	}
 
 	// 更新用户
-	if err = s.userDAL.UpdateUser(ctx, req.UserId, updates); err != nil {
+	if err = s.userDAL.UpdateUser(ctx, req.UserID, updates); err != nil {
 		log.Printf("UpdateUser error: %v", err)
 		resp.Code = 500
 		resp.Message = "failed to update user"
@@ -175,14 +179,14 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, req *user.UpdateUserRe
 func (s *UserServiceImpl) DeleteUser(ctx context.Context, req *user.DeleteUserRequest) (resp *user.DeleteUserResponse, err error) {
 	resp = &user.DeleteUserResponse{}
 
-	if req.UserId <= 0 {
+	if req.UserID <= 0 {
 		resp.Code = 400
 		resp.Message = "invalid user_id"
 		return resp, nil
 	}
 
 	// 检查用户是否存在
-	_, err = s.userDAL.GetUserByID(ctx, req.UserId)
+	_, err = s.userDAL.GetUserByID(ctx, req.UserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			resp.Code = 404
@@ -196,7 +200,7 @@ func (s *UserServiceImpl) DeleteUser(ctx context.Context, req *user.DeleteUserRe
 	}
 
 	// 删除用户
-	if err = s.userDAL.DeleteUser(ctx, req.UserId); err != nil {
+	if err = s.userDAL.DeleteUser(ctx, req.UserID); err != nil {
 		log.Printf("DeleteUser error: %v", err)
 		resp.Code = 500
 		resp.Message = "failed to delete user"
@@ -235,7 +239,7 @@ func (s *UserServiceImpl) ListUsers(ctx context.Context, req *user.ListUsersRequ
 	users := make([]*user.User, 0, len(dbUsers))
 	for _, dbUser := range dbUsers {
 		users = append(users, &user.User{
-			Id:        dbUser.ID,
+			ID:        dbUser.ID,
 			Username:  dbUser.Username,
 			Email:     dbUser.Email,
 			Phone:     dbUser.Phone,

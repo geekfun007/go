@@ -52,7 +52,7 @@ func CreateUser(ctx context.Context, c *app.RequestContext) {
 
 	if rpcResp.User != nil {
 		resp.User = &user.User{
-			ID:        rpcResp.User.Id,
+			ID:        rpcResp.User.ID,
 			Username:  rpcResp.User.Username,
 			Email:     rpcResp.User.Email,
 			Phone:     rpcResp.User.Phone,
@@ -83,7 +83,7 @@ func GetUser(ctx context.Context, c *app.RequestContext) {
 
 	// 调用 RPC 服务
 	rpcReq := &rpcuser.GetUserRequest{
-		UserId: userID,
+		UserID: userID,
 	}
 
 	rpcResp, err := client.GetUserClient().GetUser(ctx, rpcReq)
@@ -103,7 +103,7 @@ func GetUser(ctx context.Context, c *app.RequestContext) {
 
 	if rpcResp.User != nil {
 		resp.User = &user.User{
-			ID:        rpcResp.User.Id,
+			ID:        rpcResp.User.ID,
 			Username:  rpcResp.User.Username,
 			Email:     rpcResp.User.Email,
 			Phone:     rpcResp.User.Phone,
@@ -146,7 +146,7 @@ func UpdateUser(ctx context.Context, c *app.RequestContext) {
 
 	// 调用 RPC 服务
 	rpcReq := &rpcuser.UpdateUserRequest{
-		UserId:   userID,
+		UserID:   userID,
 		Username: req.Username,
 		Email:    req.Email,
 		Phone:    req.Phone,
@@ -191,7 +191,7 @@ func DeleteUser(ctx context.Context, c *app.RequestContext) {
 
 	// 调用 RPC 服务
 	rpcReq := &rpcuser.DeleteUserRequest{
-		UserId: userID,
+		UserID: userID,
 	}
 
 	rpcResp, err := client.GetUserClient().DeleteUser(ctx, rpcReq)
@@ -258,7 +258,7 @@ func ListUsers(ctx context.Context, c *app.RequestContext) {
 	users := make([]*user.User, 0, len(rpcResp.Users))
 	for _, u := range rpcResp.Users {
 		users = append(users, &user.User{
-			ID:        u.Id,
+			ID:        u.ID,
 			Username:  u.Username,
 			Email:     u.Email,
 			Phone:     u.Phone,

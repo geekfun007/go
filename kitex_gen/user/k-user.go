@@ -149,7 +149,7 @@ func (p *User) FastReadField1(buf []byte) (int, error) {
 		offset += l
 		_field = v
 	}
-	p.Id = _field
+	p.ID = _field
 	return offset, nil
 }
 
@@ -258,7 +258,7 @@ func (p *User) BLength() int {
 func (p *User) fastWriteField1(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
 	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.I64, 1)
-	offset += thrift.Binary.WriteI64(buf[offset:], p.Id)
+	offset += thrift.Binary.WriteI64(buf[offset:], p.ID)
 	return offset
 }
 
@@ -346,6 +346,8 @@ func (p *CreateUserRequest) FastRead(buf []byte) (int, error) {
 	var l int
 	var fieldTypeId thrift.TType
 	var fieldId int16
+	var issetUsername bool = false
+	var issetEmail bool = false
 	for {
 		fieldTypeId, fieldId, l, err = thrift.Binary.ReadFieldBegin(buf[offset:])
 		offset += l
@@ -363,6 +365,7 @@ func (p *CreateUserRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetUsername = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -377,6 +380,7 @@ func (p *CreateUserRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetEmail = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -407,6 +411,15 @@ func (p *CreateUserRequest) FastRead(buf []byte) (int, error) {
 		}
 	}
 
+	if !issetUsername {
+		fieldId = 1
+		goto RequiredFieldNotSetError
+	}
+
+	if !issetEmail {
+		fieldId = 2
+		goto RequiredFieldNotSetError
+	}
 	return offset, nil
 ReadFieldBeginError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
@@ -414,6 +427,8 @@ ReadFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_CreateUserRequest[fieldId]), err)
 SkipFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+RequiredFieldNotSetError:
+	return offset, thrift.NewProtocolException(thrift.INVALID_DATA, fmt.Sprintf("required field %s is not set", fieldIDToName_CreateUserRequest[fieldId]))
 }
 
 func (p *CreateUserRequest) FastReadField1(buf []byte) (int, error) {
@@ -447,12 +462,12 @@ func (p *CreateUserRequest) FastReadField2(buf []byte) (int, error) {
 func (p *CreateUserRequest) FastReadField3(buf []byte) (int, error) {
 	offset := 0
 
-	var _field string
+	var _field *string
 	if v, l, err := thrift.Binary.ReadString(buf[offset:]); err != nil {
 		return offset, err
 	} else {
 		offset += l
-		_field = v
+		_field = &v
 	}
 	p.Phone = _field
 	return offset, nil
@@ -500,8 +515,10 @@ func (p *CreateUserRequest) fastWriteField2(buf []byte, w thrift.NocopyWriter) i
 
 func (p *CreateUserRequest) fastWriteField3(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
-	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.STRING, 3)
-	offset += thrift.Binary.WriteStringNocopy(buf[offset:], w, p.Phone)
+	if p.IsSetPhone() {
+		offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.STRING, 3)
+		offset += thrift.Binary.WriteStringNocopy(buf[offset:], w, *p.Phone)
+	}
 	return offset
 }
 
@@ -521,8 +538,10 @@ func (p *CreateUserRequest) field2Length() int {
 
 func (p *CreateUserRequest) field3Length() int {
 	l := 0
-	l += thrift.Binary.FieldBeginLength()
-	l += thrift.Binary.StringLengthNocopy(p.Phone)
+	if p.IsSetPhone() {
+		l += thrift.Binary.FieldBeginLength()
+		l += thrift.Binary.StringLengthNocopy(*p.Phone)
+	}
 	return l
 }
 
@@ -685,8 +704,10 @@ func (p *CreateUserResponse) fastWriteField2(buf []byte, w thrift.NocopyWriter) 
 
 func (p *CreateUserResponse) fastWriteField3(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
-	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.STRUCT, 3)
-	offset += p.User.FastWriteNocopy(buf[offset:], w)
+	if p.IsSetUser() {
+		offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.STRUCT, 3)
+		offset += p.User.FastWriteNocopy(buf[offset:], w)
+	}
 	return offset
 }
 
@@ -706,8 +727,10 @@ func (p *CreateUserResponse) field2Length() int {
 
 func (p *CreateUserResponse) field3Length() int {
 	l := 0
-	l += thrift.Binary.FieldBeginLength()
-	l += p.User.BLength()
+	if p.IsSetUser() {
+		l += thrift.Binary.FieldBeginLength()
+		l += p.User.BLength()
+	}
 	return l
 }
 
@@ -718,6 +741,7 @@ func (p *GetUserRequest) FastRead(buf []byte) (int, error) {
 	var l int
 	var fieldTypeId thrift.TType
 	var fieldId int16
+	var issetUserID bool = false
 	for {
 		fieldTypeId, fieldId, l, err = thrift.Binary.ReadFieldBegin(buf[offset:])
 		offset += l
@@ -735,6 +759,7 @@ func (p *GetUserRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetUserID = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -751,6 +776,10 @@ func (p *GetUserRequest) FastRead(buf []byte) (int, error) {
 		}
 	}
 
+	if !issetUserID {
+		fieldId = 1
+		goto RequiredFieldNotSetError
+	}
 	return offset, nil
 ReadFieldBeginError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
@@ -758,6 +787,8 @@ ReadFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_GetUserRequest[fieldId]), err)
 SkipFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+RequiredFieldNotSetError:
+	return offset, thrift.NewProtocolException(thrift.INVALID_DATA, fmt.Sprintf("required field %s is not set", fieldIDToName_GetUserRequest[fieldId]))
 }
 
 func (p *GetUserRequest) FastReadField1(buf []byte) (int, error) {
@@ -770,7 +801,7 @@ func (p *GetUserRequest) FastReadField1(buf []byte) (int, error) {
 		offset += l
 		_field = v
 	}
-	p.UserId = _field
+	p.UserID = _field
 	return offset, nil
 }
 
@@ -799,7 +830,7 @@ func (p *GetUserRequest) BLength() int {
 func (p *GetUserRequest) fastWriteField1(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
 	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.I64, 1)
-	offset += thrift.Binary.WriteI64(buf[offset:], p.UserId)
+	offset += thrift.Binary.WriteI64(buf[offset:], p.UserID)
 	return offset
 }
 
@@ -969,8 +1000,10 @@ func (p *GetUserResponse) fastWriteField2(buf []byte, w thrift.NocopyWriter) int
 
 func (p *GetUserResponse) fastWriteField3(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
-	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.STRUCT, 3)
-	offset += p.User.FastWriteNocopy(buf[offset:], w)
+	if p.IsSetUser() {
+		offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.STRUCT, 3)
+		offset += p.User.FastWriteNocopy(buf[offset:], w)
+	}
 	return offset
 }
 
@@ -990,8 +1023,10 @@ func (p *GetUserResponse) field2Length() int {
 
 func (p *GetUserResponse) field3Length() int {
 	l := 0
-	l += thrift.Binary.FieldBeginLength()
-	l += p.User.BLength()
+	if p.IsSetUser() {
+		l += thrift.Binary.FieldBeginLength()
+		l += p.User.BLength()
+	}
 	return l
 }
 
@@ -1002,6 +1037,7 @@ func (p *UpdateUserRequest) FastRead(buf []byte) (int, error) {
 	var l int
 	var fieldTypeId thrift.TType
 	var fieldId int16
+	var issetUserID bool = false
 	for {
 		fieldTypeId, fieldId, l, err = thrift.Binary.ReadFieldBegin(buf[offset:])
 		offset += l
@@ -1019,6 +1055,7 @@ func (p *UpdateUserRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetUserID = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -1077,6 +1114,10 @@ func (p *UpdateUserRequest) FastRead(buf []byte) (int, error) {
 		}
 	}
 
+	if !issetUserID {
+		fieldId = 1
+		goto RequiredFieldNotSetError
+	}
 	return offset, nil
 ReadFieldBeginError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
@@ -1084,6 +1125,8 @@ ReadFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_UpdateUserRequest[fieldId]), err)
 SkipFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+RequiredFieldNotSetError:
+	return offset, thrift.NewProtocolException(thrift.INVALID_DATA, fmt.Sprintf("required field %s is not set", fieldIDToName_UpdateUserRequest[fieldId]))
 }
 
 func (p *UpdateUserRequest) FastReadField1(buf []byte) (int, error) {
@@ -1096,7 +1139,7 @@ func (p *UpdateUserRequest) FastReadField1(buf []byte) (int, error) {
 		offset += l
 		_field = v
 	}
-	p.UserId = _field
+	p.UserID = _field
 	return offset, nil
 }
 
@@ -1173,7 +1216,7 @@ func (p *UpdateUserRequest) BLength() int {
 func (p *UpdateUserRequest) fastWriteField1(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
 	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.I64, 1)
-	offset += thrift.Binary.WriteI64(buf[offset:], p.UserId)
+	offset += thrift.Binary.WriteI64(buf[offset:], p.UserID)
 	return offset
 }
 
@@ -1388,6 +1431,7 @@ func (p *DeleteUserRequest) FastRead(buf []byte) (int, error) {
 	var l int
 	var fieldTypeId thrift.TType
 	var fieldId int16
+	var issetUserID bool = false
 	for {
 		fieldTypeId, fieldId, l, err = thrift.Binary.ReadFieldBegin(buf[offset:])
 		offset += l
@@ -1405,6 +1449,7 @@ func (p *DeleteUserRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetUserID = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -1421,6 +1466,10 @@ func (p *DeleteUserRequest) FastRead(buf []byte) (int, error) {
 		}
 	}
 
+	if !issetUserID {
+		fieldId = 1
+		goto RequiredFieldNotSetError
+	}
 	return offset, nil
 ReadFieldBeginError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
@@ -1428,6 +1477,8 @@ ReadFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_DeleteUserRequest[fieldId]), err)
 SkipFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+RequiredFieldNotSetError:
+	return offset, thrift.NewProtocolException(thrift.INVALID_DATA, fmt.Sprintf("required field %s is not set", fieldIDToName_DeleteUserRequest[fieldId]))
 }
 
 func (p *DeleteUserRequest) FastReadField1(buf []byte) (int, error) {
@@ -1440,7 +1491,7 @@ func (p *DeleteUserRequest) FastReadField1(buf []byte) (int, error) {
 		offset += l
 		_field = v
 	}
-	p.UserId = _field
+	p.UserID = _field
 	return offset, nil
 }
 
@@ -1469,7 +1520,7 @@ func (p *DeleteUserRequest) BLength() int {
 func (p *DeleteUserRequest) fastWriteField1(buf []byte, w thrift.NocopyWriter) int {
 	offset := 0
 	offset += thrift.Binary.WriteFieldBegin(buf[offset:], thrift.I64, 1)
-	offset += thrift.Binary.WriteI64(buf[offset:], p.UserId)
+	offset += thrift.Binary.WriteI64(buf[offset:], p.UserID)
 	return offset
 }
 
@@ -1630,6 +1681,8 @@ func (p *ListUsersRequest) FastRead(buf []byte) (int, error) {
 	var l int
 	var fieldTypeId thrift.TType
 	var fieldId int16
+	var issetPage bool = false
+	var issetPageSize bool = false
 	for {
 		fieldTypeId, fieldId, l, err = thrift.Binary.ReadFieldBegin(buf[offset:])
 		offset += l
@@ -1647,6 +1700,7 @@ func (p *ListUsersRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetPage = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -1661,6 +1715,7 @@ func (p *ListUsersRequest) FastRead(buf []byte) (int, error) {
 				if err != nil {
 					goto ReadFieldError
 				}
+				issetPageSize = true
 			} else {
 				l, err = thrift.Binary.Skip(buf[offset:], fieldTypeId)
 				offset += l
@@ -1677,6 +1732,15 @@ func (p *ListUsersRequest) FastRead(buf []byte) (int, error) {
 		}
 	}
 
+	if !issetPage {
+		fieldId = 1
+		goto RequiredFieldNotSetError
+	}
+
+	if !issetPageSize {
+		fieldId = 2
+		goto RequiredFieldNotSetError
+	}
 	return offset, nil
 ReadFieldBeginError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d begin error: ", p, fieldId), err)
@@ -1684,6 +1748,8 @@ ReadFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T read field %d '%s' error: ", p, fieldId, fieldIDToName_ListUsersRequest[fieldId]), err)
 SkipFieldError:
 	return offset, thrift.PrependError(fmt.Sprintf("%T field %d skip type %d error: ", p, fieldId, fieldTypeId), err)
+RequiredFieldNotSetError:
+	return offset, thrift.NewProtocolException(thrift.INVALID_DATA, fmt.Sprintf("required field %s is not set", fieldIDToName_ListUsersRequest[fieldId]))
 }
 
 func (p *ListUsersRequest) FastReadField1(buf []byte) (int, error) {

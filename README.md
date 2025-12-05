@@ -467,9 +467,10 @@ echo $MYSQL_HOST $MYSQL_PORT $MYSQL_USER
 
 ## ✅ 项目状态
 
-- ✅ Thrift IDL 定义
+- ✅ Thrift IDL 定义（首字母大写）
 - ✅ Kitex CLI 自动生成 RPC 服务
 - ✅ Hz CLI 自动生成 HTTP 服务
+- ✅ 参数绑定与校验（go.tag + vd）
 - ✅ Kitex RPC 服务实现
 - ✅ Hertz HTTP 服务实现
 - ✅ Etcd 服务注册与发现

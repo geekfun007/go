@@ -8,12 +8,12 @@ import (
 )
 
 type User struct {
-	Id        int64  `thrift:"id,1" frugal:"1,default,i64" json:"id"`
-	Username  string `thrift:"username,2" frugal:"2,default,string" json:"username"`
-	Email     string `thrift:"email,3" frugal:"3,default,string" json:"email"`
-	Phone     string `thrift:"phone,4" frugal:"4,default,string" json:"phone"`
-	CreatedAt int64  `thrift:"created_at,5" frugal:"5,default,i64" json:"created_at"`
-	UpdatedAt int64  `thrift:"updated_at,6" frugal:"6,default,i64" json:"updated_at"`
+	ID        int64  `thrift:"ID,1" frugal:"1,default,i64" json:"id"`
+	Username  string `thrift:"Username,2" frugal:"2,default,string" json:"username"`
+	Email     string `thrift:"Email,3" frugal:"3,default,string" json:"email"`
+	Phone     string `thrift:"Phone,4" frugal:"4,default,string" json:"phone"`
+	CreatedAt int64  `thrift:"CreatedAt,5" frugal:"5,default,i64" json:"created_at"`
+	UpdatedAt int64  `thrift:"UpdatedAt,6" frugal:"6,default,i64" json:"updated_at"`
 }
 
 func NewUser() *User {
@@ -23,8 +23,8 @@ func NewUser() *User {
 func (p *User) InitDefault() {
 }
 
-func (p *User) GetId() (v int64) {
-	return p.Id
+func (p *User) GetID() (v int64) {
+	return p.ID
 }
 
 func (p *User) GetUsername() (v string) {
@@ -46,8 +46,8 @@ func (p *User) GetCreatedAt() (v int64) {
 func (p *User) GetUpdatedAt() (v int64) {
 	return p.UpdatedAt
 }
-func (p *User) SetId(val int64) {
-	p.Id = val
+func (p *User) SetID(val int64) {
+	p.ID = val
 }
 func (p *User) SetUsername(val string) {
 	p.Username = val
@@ -73,18 +73,18 @@ func (p *User) String() string {
 }
 
 var fieldIDToName_User = map[int16]string{
-	1: "id",
-	2: "username",
-	3: "email",
-	4: "phone",
-	5: "created_at",
-	6: "updated_at",
+	1: "ID",
+	2: "Username",
+	3: "Email",
+	4: "Phone",
+	5: "CreatedAt",
+	6: "UpdatedAt",
 }
 
 type CreateUserRequest struct {
-	Username string `thrift:"username,1" frugal:"1,default,string" json:"username"`
-	Email    string `thrift:"email,2" frugal:"2,default,string" json:"email"`
-	Phone    string `thrift:"phone,3" frugal:"3,default,string" json:"phone"`
+	Username string  `thrift:"Username,1,required" frugal:"1,required,string" json:"username" form:"username" query:"username" vd:"len($) > 0 && len($) <= 64"`
+	Email    string  `thrift:"Email,2,required" frugal:"2,required,string" json:"email" form:"email" query:"email" vd:"len($) > 0 && len($) <= 128"`
+	Phone    *string `thrift:"Phone,3,optional" frugal:"3,optional,string" json:"phone,omitempty" form:"phone" query:"phone" vd:"len($) == 0 || len($) == 11"`
 }
 
 func NewCreateUserRequest() *CreateUserRequest {
@@ -102,8 +102,13 @@ func (p *CreateUserRequest) GetEmail() (v string) {
 	return p.Email
 }
 
+var CreateUserRequest_Phone_DEFAULT string
+
 func (p *CreateUserRequest) GetPhone() (v string) {
-	return p.Phone
+	if !p.IsSetPhone() {
+		return CreateUserRequest_Phone_DEFAULT
+	}
+	return *p.Phone
 }
 func (p *CreateUserRequest) SetUsername(val string) {
 	p.Username = val
@@ -111,8 +116,12 @@ func (p *CreateUserRequest) SetUsername(val string) {
 func (p *CreateUserRequest) SetEmail(val string) {
 	p.Email = val
 }
-func (p *CreateUserRequest) SetPhone(val string) {
+func (p *CreateUserRequest) SetPhone(val *string) {
 	p.Phone = val
+}
+
+func (p *CreateUserRequest) IsSetPhone() bool {
+	return p.Phone != nil
 }
 
 func (p *CreateUserRequest) String() string {
@@ -123,15 +132,15 @@ func (p *CreateUserRequest) String() string {
 }
 
 var fieldIDToName_CreateUserRequest = map[int16]string{
-	1: "username",
-	2: "email",
-	3: "phone",
+	1: "Username",
+	2: "Email",
+	3: "Phone",
 }
 
 type CreateUserResponse struct {
-	Code    int32  `thrift:"code,1" frugal:"1,default,i32" json:"code"`
-	Message string `thrift:"message,2" frugal:"2,default,string" json:"message"`
-	User    *User  `thrift:"user,3" frugal:"3,default,User" json:"user"`
+	Code    int32  `thrift:"Code,1" frugal:"1,default,i32" json:"code"`
+	Message string `thrift:"Message,2" frugal:"2,default,string" json:"message"`
+	User    *User  `thrift:"User,3,optional" frugal:"3,optional,User" json:"user,omitempty"`
 }
 
 func NewCreateUserResponse() *CreateUserResponse {
@@ -179,13 +188,13 @@ func (p *CreateUserResponse) String() string {
 }
 
 var fieldIDToName_CreateUserResponse = map[int16]string{
-	1: "code",
-	2: "message",
-	3: "user",
+	1: "Code",
+	2: "Message",
+	3: "User",
 }
 
 type GetUserRequest struct {
-	UserId int64 `thrift:"user_id,1" frugal:"1,default,i64" json:"user_id"`
+	UserID int64 `thrift:"UserID,1,required" frugal:"1,required,i64" json:"user_id" path:"id" vd:"$ > 0"`
 }
 
 func NewGetUserRequest() *GetUserRequest {
@@ -195,11 +204,11 @@ func NewGetUserRequest() *GetUserRequest {
 func (p *GetUserRequest) InitDefault() {
 }
 
-func (p *GetUserRequest) GetUserId() (v int64) {
-	return p.UserId
+func (p *GetUserRequest) GetUserID() (v int64) {
+	return p.UserID
 }
-func (p *GetUserRequest) SetUserId(val int64) {
-	p.UserId = val
+func (p *GetUserRequest) SetUserID(val int64) {
+	p.UserID = val
 }
 
 func (p *GetUserRequest) String() string {
@@ -210,13 +219,13 @@ func (p *GetUserRequest) String() string {
 }
 
 var fieldIDToName_GetUserRequest = map[int16]string{
-	1: "user_id",
+	1: "UserID",
 }
 
 type GetUserResponse struct {
-	Code    int32  `thrift:"code,1" frugal:"1,default,i32" json:"code"`
-	Message string `thrift:"message,2" frugal:"2,default,string" json:"message"`
-	User    *User  `thrift:"user,3" frugal:"3,default,User" json:"user"`
+	Code    int32  `thrift:"Code,1" frugal:"1,default,i32" json:"code"`
+	Message string `thrift:"Message,2" frugal:"2,default,string" json:"message"`
+	User    *User  `thrift:"User,3,optional" frugal:"3,optional,User" json:"user,omitempty"`
 }
 
 func NewGetUserResponse() *GetUserResponse {
@@ -264,16 +273,16 @@ func (p *GetUserResponse) String() string {
 }
 
 var fieldIDToName_GetUserResponse = map[int16]string{
-	1: "code",
-	2: "message",
-	3: "user",
+	1: "Code",
+	2: "Message",
+	3: "User",
 }
 
 type UpdateUserRequest struct {
-	UserId   int64   `thrift:"user_id,1" frugal:"1,default,i64" json:"user_id"`
-	Username *string `thrift:"username,2,optional" frugal:"2,optional,string" json:"username,omitempty"`
-	Email    *string `thrift:"email,3,optional" frugal:"3,optional,string" json:"email,omitempty"`
-	Phone    *string `thrift:"phone,4,optional" frugal:"4,optional,string" json:"phone,omitempty"`
+	UserID   int64   `thrift:"UserID,1,required" frugal:"1,required,i64" json:"user_id" path:"id" vd:"$ > 0"`
+	Username *string `thrift:"Username,2,optional" frugal:"2,optional,string" json:"username,omitempty" form:"username" vd:"len($) == 0 || len($) <= 64"`
+	Email    *string `thrift:"Email,3,optional" frugal:"3,optional,string" json:"email,omitempty" form:"email" vd:"len($) == 0 || len($) <= 128"`
+	Phone    *string `thrift:"Phone,4,optional" frugal:"4,optional,string" json:"phone,omitempty" form:"phone" vd:"len($) == 0 || len($) == 11"`
 }
 
 func NewUpdateUserRequest() *UpdateUserRequest {
@@ -283,8 +292,8 @@ func NewUpdateUserRequest() *UpdateUserRequest {
 func (p *UpdateUserRequest) InitDefault() {
 }
 
-func (p *UpdateUserRequest) GetUserId() (v int64) {
-	return p.UserId
+func (p *UpdateUserRequest) GetUserID() (v int64) {
+	return p.UserID
 }
 
 var UpdateUserRequest_Username_DEFAULT string
@@ -313,8 +322,8 @@ func (p *UpdateUserRequest) GetPhone() (v string) {
 	}
 	return *p.Phone
 }
-func (p *UpdateUserRequest) SetUserId(val int64) {
-	p.UserId = val
+func (p *UpdateUserRequest) SetUserID(val int64) {
+	p.UserID = val
 }
 func (p *UpdateUserRequest) SetUsername(val *string) {
 	p.Username = val
@@ -346,15 +355,15 @@ func (p *UpdateUserRequest) String() string {
 }
 
 var fieldIDToName_UpdateUserRequest = map[int16]string{
-	1: "user_id",
-	2: "username",
-	3: "email",
-	4: "phone",
+	1: "UserID",
+	2: "Username",
+	3: "Email",
+	4: "Phone",
 }
 
 type UpdateUserResponse struct {
-	Code    int32  `thrift:"code,1" frugal:"1,default,i32" json:"code"`
-	Message string `thrift:"message,2" frugal:"2,default,string" json:"message"`
+	Code    int32  `thrift:"Code,1" frugal:"1,default,i32" json:"code"`
+	Message string `thrift:"Message,2" frugal:"2,default,string" json:"message"`
 }
 
 func NewUpdateUserResponse() *UpdateUserResponse {
@@ -386,12 +395,12 @@ func (p *UpdateUserResponse) String() string {
 }
 
 var fieldIDToName_UpdateUserResponse = map[int16]string{
-	1: "code",
-	2: "message",
+	1: "Code",
+	2: "Message",
 }
 
 type DeleteUserRequest struct {
-	UserId int64 `thrift:"user_id,1" frugal:"1,default,i64" json:"user_id"`
+	UserID int64 `thrift:"UserID,1,required" frugal:"1,required,i64" json:"user_id" path:"id" vd:"$ > 0"`
 }
 
 func NewDeleteUserRequest() *DeleteUserRequest {
@@ -401,11 +410,11 @@ func NewDeleteUserRequest() *DeleteUserRequest {
 func (p *DeleteUserRequest) InitDefault() {
 }
 
-func (p *DeleteUserRequest) GetUserId() (v int64) {
-	return p.UserId
+func (p *DeleteUserRequest) GetUserID() (v int64) {
+	return p.UserID
 }
-func (p *DeleteUserRequest) SetUserId(val int64) {
-	p.UserId = val
+func (p *DeleteUserRequest) SetUserID(val int64) {
+	p.UserID = val
 }
 
 func (p *DeleteUserRequest) String() string {
@@ -416,12 +425,12 @@ func (p *DeleteUserRequest) String() string {
 }
 
 var fieldIDToName_DeleteUserRequest = map[int16]string{
-	1: "user_id",
+	1: "UserID",
 }
 
 type DeleteUserResponse struct {
-	Code    int32  `thrift:"code,1" frugal:"1,default,i32" json:"code"`
-	Message string `thrift:"message,2" frugal:"2,default,string" json:"message"`
+	Code    int32  `thrift:"Code,1" frugal:"1,default,i32" json:"code"`
+	Message string `thrift:"Message,2" frugal:"2,default,string" json:"message"`
 }
 
 func NewDeleteUserResponse() *DeleteUserResponse {
@@ -453,13 +462,13 @@ func (p *DeleteUserResponse) String() string {
 }
 
 var fieldIDToName_DeleteUserResponse = map[int16]string{
-	1: "code",
-	2: "message",
+	1: "Code",
+	2: "Message",
 }
 
 type ListUsersRequest struct {
-	Page     int32 `thrift:"page,1" frugal:"1,default,i32" json:"page"`
-	PageSize int32 `thrift:"page_size,2" frugal:"2,default,i32" json:"page_size"`
+	Page     int32 `thrift:"Page,1,required" frugal:"1,required,i32" json:"page" form:"page" query:"page" vd:"$ > 0"`
+	PageSize int32 `thrift:"PageSize,2,required" frugal:"2,required,i32" json:"page_size" form:"page_size" query:"page_size" vd:"$ > 0 && $ <= 100"`
 }
 
 func NewListUsersRequest() *ListUsersRequest {
@@ -491,15 +500,15 @@ func (p *ListUsersRequest) String() string {
 }
 
 var fieldIDToName_ListUsersRequest = map[int16]string{
-	1: "page",
-	2: "page_size",
+	1: "Page",
+	2: "PageSize",
 }
 
 type ListUsersResponse struct {
-	Code    int32   `thrift:"code,1" frugal:"1,default,i32" json:"code"`
-	Message string  `thrift:"message,2" frugal:"2,default,string" json:"message"`
-	Users   []*User `thrift:"users,3" frugal:"3,default,list<User>" json:"users"`
-	Total   int64   `thrift:"total,4" frugal:"4,default,i64" json:"total"`
+	Code    int32   `thrift:"Code,1" frugal:"1,default,i32" json:"code"`
+	Message string  `thrift:"Message,2" frugal:"2,default,string" json:"message"`
+	Users   []*User `thrift:"Users,3" frugal:"3,default,list<User>" json:"users,omitempty"`
+	Total   int64   `thrift:"Total,4" frugal:"4,default,i64" json:"total"`
 }
 
 func NewListUsersResponse() *ListUsersResponse {
@@ -545,10 +554,10 @@ func (p *ListUsersResponse) String() string {
 }
 
 var fieldIDToName_ListUsersResponse = map[int16]string{
-	1: "code",
-	2: "message",
-	3: "users",
-	4: "total",
+	1: "Code",
+	2: "Message",
+	3: "Users",
+	4: "Total",
 }
 
 type UserService interface {
