@@ -1,0 +1,16 @@
+# Python Asyncio 示例项目依赖
+
+# 核心库（标准库已包含）
+# Python >= 3.7
+
+# 可选依赖（用于实际项目）
+aiohttp>=3.9.0        # 异步 HTTP 客户端/服务器
+aiofiles>=23.2.0      # 异步文件操作
+asyncpg>=0.29.0       # 异步 PostgreSQL
+aioredis>=2.0.1       # 异步 Redis
+uvloop>=0.19.0        # 更快的事件循环实现
+
+# 开发依赖
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0

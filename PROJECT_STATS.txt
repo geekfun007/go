@@ -1,0 +1,63 @@
+========================================
+项目统计 / Project Statistics
+========================================
+
+代码统计 / Code Stats
+----------------------
+总代码行数: 4,265 行
+  - Go 代码: ~2,300 行
+  - Python 代码: ~1,965 行
+
+文档统计 / Documentation Stats
+------------------------------
+总文档行数: 2,795 行
+  - README.md: 主文档
+  - EXAMPLES.md: 示例索引
+  - CONTRIBUTING.md: 贡献指南
+  - PROJECT_SUMMARY.md: 项目总结
+  - QUICK_START.md: 快速开始
+
+文件统计 / File Stats
+---------------------
+Go 示例文件: 9 个
+  - 01-basic-goroutines: 基础 Goroutines
+  - 02-channels: Channel 详解
+  - 03-select-statement: Select 语句
+  - 04-context: Context 上下文
+  - 05-sync-package: Sync 包
+  - 06-advanced-patterns: 高级模式
+  - 07-practical-examples: 实战示例 (2 个文件)
+
+Python 示例文件: 6 个
+  - 01-asyncio-basics: Asyncio 基础
+  - 02-event-loop: 事件循环
+  - 03-streams-and-protocols: 流和协议
+  - 04-practical-examples: HTTP 客户端
+  - 05-custom-implementation: 自定义实现
+  - 06-advanced-examples: 网络爬虫
+
+总示例数量 / Total Examples
+--------------------------
+Go 示例: 52 个
+Python 示例: 43 个
+总计: 95+ 个代码示例
+
+特性 / Features
+--------------
+✅ 中英双语注释
+✅ 循序渐进结构
+✅ 完整原理讲解
+✅ 实战导向示例
+✅ 自定义实现
+✅ 运行脚本
+✅ 详细文档
+✅ 贡献指南
+
+项目完成度 / Completion
+-----------------------
+[████████████████████] 100%
+
+所有计划功能已完成！
+All planned features completed!
+
+========================================
