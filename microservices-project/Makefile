@@ -1,12 +1,12 @@
-.PHONY: help init gen-user gen-gateway build-user build-gateway run-user run-gateway run stop clean test
+.PHONY: help init gen gen-user gen-gateway build-user build-gateway run-user run-gateway run stop clean test docker-up docker-down
 
 # 默认目标
 help:
 	@echo "Make 命令列表:"
-	@echo "  make init          - 初始化项目（安装依赖）"
-	@echo "  make gen           - 生成所有代码"
-	@echo "  make gen-user      - 生成用户服务代码"
-	@echo "  make gen-gateway   - 生成网关代码"
+	@echo "  make init          - 初始化项目（安装依赖和工具）"
+	@echo "  make gen           - 生成所有代码（Kitex + Hertz）"
+	@echo "  make gen-user      - 生成用户服务代码（Kitex）"
+	@echo "  make gen-gateway   - 生成网关代码（Hertz hz）"
 	@echo "  make build         - 编译所有服务"
 	@echo "  make build-user    - 编译用户服务"
 	@echo "  make build-gateway - 编译网关服务"
@@ -22,23 +22,38 @@ help:
 # 初始化项目
 init:
 	@echo "==> 初始化项目..."
+	@echo "==> 安装 Kitex..."
 	go install github.com/cloudwego/kitex/tool/cmd/kitex@latest
+	@echo "==> 安装 Hertz CLI..."
 	go install github.com/cloudwego/hertz/cmd/hz@latest
+	@echo "==> 安装 Thriftgo..."
 	go install github.com/cloudwego/thriftgo@latest
-	@echo "==> 安装依赖..."
-	cd user-service && go mod download
-	cd api-gateway && go mod download
+	@echo "==> 初始化完成"
 
 # 生成代码
-gen: gen-user gen-gateway
+gen:
+	@echo "==> 使用脚本生成所有代码..."
+	chmod +x scripts/generate.sh
+	./scripts/generate.sh
 
 gen-user:
-	@echo "==> 生成用户服务代码..."
-	cd user-service && kitex -module github.com/example/microservices-project/user-service -service userservice ../idl/user.thrift
+	@echo "==> 生成用户服务代码（Kitex）..."
+	cd user-service && \
+	kitex -module github.com/example/microservices-project/user-service \
+	      -service userservice \
+	      -use github.com/example/microservices-project/user-service/kitex_gen \
+	      ../idl/user.thrift && \
+	go mod tidy
 
 gen-gateway:
-	@echo "==> 生成网关代码..."
-	@echo "网关使用 user-service 的 kitex_gen，无需单独生成"
+	@echo "==> 生成网关代码（Hertz）..."
+	cd api-gateway && \
+	hz update -idl ../idl/user.thrift \
+	   -handler_dir biz/handler \
+	   -model_dir biz/model \
+	   -router_dir biz/router && \
+	cp -r ../user-service/kitex_gen . && \
+	go mod tidy
 
 # 编译
 build: build-user build-gateway
@@ -92,6 +107,10 @@ clean:
 	rm -rf api-gateway/bin
 	rm -rf user-service/kitex_gen
 	rm -rf api-gateway/kitex_gen
+	rm -rf api-gateway/hertz_gen
+	rm -rf api-gateway/biz/handler/user
+	rm -rf api-gateway/biz/model/user
+	rm -rf api-gateway/biz/router/user
 	@echo "==> 清理完成"
 
 # 测试
@@ -101,6 +120,9 @@ test:
 	cd api-gateway && go test ./...
 
 # 完整流程
-all: docker-up gen build run
+all: init docker-up gen build run
+
+# 快速重新生成（清理 + 生成）
+regen: clean gen
 
 .DEFAULT_GOAL := help

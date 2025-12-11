@@ -2,6 +2,21 @@
 
 基于 GORM + Hertz + Kitex 的完整微服务架构实现。
 
+> **最新版本：v2.0.0** - 已集成 Hertz IDL 注解，支持自动生成路由和参数校验
+
+## 📖 版本说明
+
+### v2.0.0 新特性 🎉
+
+1. **✅ IDL 增强** - 添加 Hertz API 注解和参数校验
+2. **✅ 自动生成** - 使用 `hz` CLI 自动生成 Handler 和 Router
+3. **✅ 参数验证** - 内置参数校验，无需手动验证
+4. **✅ 完整文档** - 新增 IDL 注解详解文档
+
+详见 [CHANGELOG.md](./CHANGELOG.md)
+
+---
+
 ## 项目架构
 
 ```
@@ -13,9 +28,10 @@
 ┌─────────────────────────────────────────┐
 │     API Gateway (Hertz)                 │
 │  - HTTP RESTful API                     │
+│  - hz 自动生成路由                      │
+│  - IDL 参数校验                         │
 │  - JWT 认证                             │
 │  - 请求转发                             │
-│  - 限流熔断                             │
 └──────┬──────────────────────────────────┘
        │ RPC (Thrift)
        ▼
@@ -23,170 +39,153 @@
 │     User Service (Kitex)                │
 │  - 用户管理                             │
 │  - 业务逻辑                             │
-│  - 数据持久化                           │
+│  - 数据持久化（GORM + MySQL）           │
 └──────┬──────────────────────────────────┘
        │ SQL
        ▼
 ┌─────────────────────────────────────────┐
 │          MySQL (GORM)                   │
-│  - 数据存储                             │
-│  - 事务管理                             │
 └─────────────────────────────────────────┘
 
     Service Discovery (Etcd)
 ```
 
+---
+
 ## 目录结构
 
 ```
 microservices-project/
-├── idl/                          # IDL 接口定义
-│   ├── user.thrift               # 用户服务接口定义
-│   └── common.thrift             # 公共定义
+├── idl/                          # IDL 接口定义（带 Hertz 注解）
+│   ├── common.thrift             # 公共定义
+│   └── user.thrift               # 用户服务接口（含路由和校验注解）
 │
 ├── api-gateway/                  # API 网关 (Hertz)
 │   ├── biz/
-│   │   ├── handler/              # HTTP 处理器
-│   │   │   ├── user.go           # 用户相关接口
-│   │   │   └── ping.go           # 健康检查
+│   │   ├── handler/              # HTTP 处理器（hz 自动生成）
+│   │   │   └── user/
+│   │   │       └── user_service.go
+│   │   ├── model/                # 数据模型（hz 自动生成）
+│   │   │   └── user/
 │   │   ├── middleware/           # 中间件
-│   │   │   ├── auth.go           # JWT 认证
-│   │   │   ├── cors.go           # CORS 跨域
-│   │   │   ├── logger.go         # 日志记录
-│   │   │   └── recovery.go       # 异常恢复
-│   │   ├── router/               # 路由配置
-│   │   │   └── router.go
+│   │   │   ├── auth.go
+│   │   │   ├── cors.go
+│   │   │   ├── logger.go
+│   │   │   └── recovery.go
+│   │   ├── router/               # 路由配置（hz 自动生成）
+│   │   │   └── user/
 │   │   └── client/               # RPC 客户端
-│   │       └── user_client.go    # 用户服务客户端
-│   ├── conf/                     # 配置文件
-│   │   ├── config.go
-│   │   └── config.yaml
-│   ├── pkg/                      # 工具包
-│   │   ├── response/             # 统一响应
-│   │   └── jwt/                  # JWT 工具
-│   ├── kitex_gen/                # Kitex 生成代码
-│   ├── main.go
-│   ├── go.mod
-│   └── go.sum
+│   │       └── user_client.go
+│   ├── conf/
+│   ├── pkg/
+│   ├── router_gen.go             # hz 自动生成的路由注册
+│   └── main.go
 │
 ├── user-service/                 # 用户服务 (Kitex + GORM)
 │   ├── biz/
-│   │   ├── handler/              # RPC 处理器
-│   │   │   └── user_handler.go
-│   │   ├── service/              # 业务逻辑层
-│   │   │   └── user_service.go
-│   │   ├── repository/           # 数据访问层
-│   │   │   └── user_repository.go
-│   │   └── model/                # 数据模型
-│   │       └── user.go
-│   ├── conf/                     # 配置文件
-│   │   ├── config.go
-│   │   └── config.yaml
-│   ├── pkg/                      # 工具包
-│   │   ├── db/                   # 数据库连接
-│   │   └── registry/             # 服务注册
-│   ├── kitex_gen/                # Kitex 生成代码
-│   ├── idl/                      # IDL 文件
-│   ├── main.go
-│   ├── build.sh
-│   ├── go.mod
-│   └── go.sum
-│
-├── common/                       # 公共库
-│   ├── utils/                    # 工具函数
-│   │   ├── hash.go               # 密码加密
-│   │   └── jwt.go                # JWT 工具
-│   ├── constants/                # 常量定义
-│   │   └── error_code.go
-│   └── go.mod
+│   │   ├── handler/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   └── model/
+│   ├── conf/
+│   ├── pkg/
+│   └── main.go
 │
 ├── scripts/                      # 脚本
-│   ├── generate.sh               # 代码生成脚本
-│   ├── start.sh                  # 启动脚本
-│   └── stop.sh                   # 停止脚本
+│   ├── generate.sh               # 代码生成脚本（Kitex + Hertz）
+│   ├── start.sh
+│   └── stop.sh
 │
-├── docker-compose.yml            # Docker 编排
+├── docker-compose.yml
 ├── Makefile                      # 构建脚本
-└── README.md                     # 项目说明
+├── IDL_ANNOTATIONS.md            # IDL 注解详解 ⭐新增
+├── CHANGELOG.md                  # 更新日志 ⭐新增
+└── README.md
 ```
 
-## 快速开始
+---
 
-### 1. 环境要求
+## 🚀 快速开始
+
+### 环境要求
 
 - Go 1.19+
 - MySQL 8.0+
 - Etcd 3.5+
-- Docker & Docker Compose (可选)
+- Docker & Docker Compose
 
-### 2. 安装工具
+### 1. 安装工具
 
 ```bash
-# 安装 Hertz CLI
+# 方式 1：使用 Make
+make init
+
+# 方式 2：手动安装
 go install github.com/cloudwego/hertz/cmd/hz@latest
-
-# 安装 Kitex CLI
 go install github.com/cloudwego/kitex/tool/cmd/kitex@latest
-
-# 安装 Thriftgo
 go install github.com/cloudwego/thriftgo@latest
 ```
 
-### 3. 启动基础服务
+### 2. 启动基础服务
 
 ```bash
-# 启动 MySQL 和 Etcd
-docker-compose up -d
+# 启动 MySQL、Etcd、Redis
+make docker-up
 
-# 等待服务就绪
-sleep 5
+# 或手动启动
+docker-compose up -d
 ```
 
-### 4. 生成代码
+### 3. 生成代码
 
 ```bash
-# 方式 1：使用脚本
+# 方式 1：使用 Make（推荐）
+make gen
+
+# 方式 2：使用脚本
+chmod +x scripts/generate.sh
 ./scripts/generate.sh
 
-# 方式 2：手动生成
-cd user-service
-kitex -module github.com/example/microservices-project/user-service \
-  -service userservice \
-  ../idl/user.thrift
-
-cd ../api-gateway
-# 复制 kitex_gen 或使用相同的生成命令
+# 方式 3：分别生成
+make gen-user      # 生成用户服务（Kitex）
+make gen-gateway   # 生成网关（Hertz）
 ```
 
-### 5. 启动服务
+**生成的内容：**
+- ✅ Kitex RPC 服务端代码
+- ✅ Hertz HTTP Handler（自动生成）
+- ✅ Hertz Router（自动生成）
+- ✅ Model 结构体（自动生成）
+- ✅ 参数绑定和验证（自动生成）
+
+### 4. 启动服务
 
 ```bash
-# 方式 1：使用 Makefile
+# 方式 1：使用 Make
 make run
 
 # 方式 2：手动启动
-# 终端 1：启动用户服务
+# 终端 1：用户服务
 cd user-service
 go mod tidy
 go run main.go
 
-# 终端 2：启动 API 网关
+# 终端 2：API 网关
 cd api-gateway
 go mod tidy
 go run main.go
 ```
 
-### 6. 测试 API
+### 5. 测试 API
 
 ```bash
 # 注册用户
 curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "zhangsan",
-    "email": "zhangsan@example.com",
+    "username": "testuser",
+    "email": "test@example.com",
     "password": "password123",
-    "phone": "13800138000",
     "age": 25
   }'
 
@@ -194,274 +193,426 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "zhangsan@example.com",
+    "email": "test@example.com",
     "password": "password123"
   }'
 
-# 获取用户信息（需要 token）
-TOKEN="your_jwt_token"
-curl -X GET http://localhost:8080/api/v1/users/1 \
-  -H "Authorization: Bearer $TOKEN"
+# 获取用户信息
+curl http://localhost:8080/api/v1/users/1
 
-# 更新用户信息
-curl -X PUT http://localhost:8080/api/v1/users/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "zhangsan_updated",
-    "age": 26
-  }'
-
-# 删除用户
-curl -X DELETE http://localhost:8080/api/v1/users/1 \
-  -H "Authorization: Bearer $TOKEN"
+# 健康检查
+curl http://localhost:8080/health
 ```
 
-## 技术栈
+---
 
-- **API 网关**: Hertz (HTTP 框架)
-- **RPC 服务**: Kitex (RPC 框架)
-- **ORM**: GORM (数据库 ORM)
-- **服务发现**: Etcd
-- **数据库**: MySQL
-- **认证**: JWT
-- **序列化**: Thrift
+## 📚 IDL 注解说明
 
-## 功能特性
+### API 注解
 
-### 已实现
+项目使用 Hertz IDL 注解定义 HTTP 路由和参数校验。
 
-- ✅ 用户注册/登录
-- ✅ JWT 认证鉴权
-- ✅ 用户信息 CRUD
-- ✅ 密码加密存储
-- ✅ 服务注册发现
-- ✅ 统一错误处理
-- ✅ 日志记录
-- ✅ CORS 支持
-- ✅ 健康检查
+#### 路由注解
 
-### 扩展方向
+```thrift
+service UserService {
+    // POST 请求
+    RegisterResponse Register(1: RegisterRequest req) (
+        api.post="/api/v1/auth/register"
+    )
+    
+    // GET 请求（带路径参数）
+    GetUserResponse GetUser(1: GetUserRequest req) (
+        api.get="/api/v1/users/:id"
+    )
+    
+    // PUT 请求
+    UpdateUserResponse UpdateUser(1: UpdateUserRequest req) (
+        api.put="/api/v1/users/:id"
+    )
+    
+    // DELETE 请求
+    DeleteUserResponse DeleteUser(1: DeleteUserRequest req) (
+        api.delete="/api/v1/users/:id"
+    )
+}
+```
 
-#### 1. 功能扩展
+#### 参数注解
+
+```thrift
+struct RegisterRequest {
+    // 请求体参数 + 长度校验
+    1: required string Username (
+        api.body="username", 
+        api.vd="len($) >= 3 && len($) <= 20"
+    )
+    
+    // 请求体参数 + 正则校验
+    2: required string Email (
+        api.body="email", 
+        api.vd="regexp($, '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')"
+    )
+    
+    // 请求体参数 + 范围校验
+    3: required string Password (
+        api.body="password", 
+        api.vd="len($) >= 6 && len($) <= 20"
+    )
+    
+    // 可选参数 + 范围校验
+    4: optional i32 Age (
+        api.body="age", 
+        api.vd="$ >= 0 && $ <= 150"
+    )
+}
+
+struct GetUserRequest {
+    // 路径参数
+    1: required i64 UserID (
+        api.path="id", 
+        api.vd="$ > 0"
+    )
+}
+
+struct ListUsersRequest {
+    // 查询参数
+    1: optional i32 Page (
+        api.query="page", 
+        api.vd="$ > 0"
+    )
+    2: optional i32 PageSize (
+        api.query="page_size", 
+        api.vd="$ > 0 && $ <= 100"
+    )
+}
+```
+
+### 参数校验规则
+
+| 类型 | 语法 | 示例 |
+|------|------|------|
+| 字符串长度 | `len($) >= min && len($) <= max` | `len($) >= 6 && len($) <= 20` |
+| 数值范围 | `$ >= min && $ <= max` | `$ >= 0 && $ <= 150` |
+| 大于 | `$ > value` | `$ > 0` |
+| 正则表达式 | `regexp($, pattern)` | `regexp($, '^1[3-9]\\d{9}$')` |
+| 组合条件 | `condition1 && condition2` | `len($) > 0 && len($) <= 20` |
+
+**详细说明请查看：** [IDL_ANNOTATIONS.md](./IDL_ANNOTATIONS.md)
+
+---
+
+## 🎯 核心特性
+
+### ✅ 已实现功能
+
+1. **用户注册** 
+   - 邮箱/用户名唯一性验证
+   - 密码加密（bcrypt）
+   - 自动参数校验（IDL 注解）
+
+2. **用户登录**
+   - JWT Token 生成
+   - 密码验证
+
+3. **用户信息获取**
+   - 支持公开访问（无需 token）
+   - 支持认证访问（需要 token）
+
+4. **用户信息更新**
+   - 权限验证（只能更新自己）
+   - 字段部分更新
+   - 自动参数校验
+
+5. **用户删除**
+   - 软删除
+   - 权限验证
+
+6. **用户列表**
+   - 分页查询
+   - 关键字搜索
+   - 自动参数校验
+
+7. **服务治理**
+   - Etcd 服务注册发现
+   - 健康检查接口
+
+### 🎨 技术亮点
+
+1. **✅ IDL 驱动开发**
+   - 使用 Thrift IDL 定义接口
+   - 添加 Hertz API 注解
+   - 自动生成代码
+
+2. **✅ 自动化代码生成**
+   - `hz` 自动生成 Handler
+   - `hz` 自动生成 Router
+   - `kitex` 生成 RPC 代码
+
+3. **✅ 内置参数校验**
+   - IDL 中定义校验规则
+   - 自动进行参数验证
+   - 减少手动校验代码
+
+4. **✅ 清晰的分层架构**
+   - Handler → Service → Repository → Model
+   - 职责明确，易于维护
+
+5. **✅ 完善的中间件**
+   - 日志记录
+   - CORS 跨域
+   - JWT 认证
+   - 异常恢复
+
+---
+
+## 📖 文档索引
+
+| 文档 | 说明 |
+|------|------|
+| [README.md](./README.md) | 项目说明、快速开始 |
+| [IDL_ANNOTATIONS.md](./IDL_ANNOTATIONS.md) | ⭐ Hertz IDL 注解详解 |
+| [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) | 项目结构详解 |
+| [TESTING.md](./TESTING.md) | API 测试指南 |
+| [CHANGELOG.md](./CHANGELOG.md) | ⭐ 更新日志 |
+
+---
+
+## 🔧 Make 命令
+
+```bash
+# 初始化
+make init          # 安装工具（kitex, hz, thriftgo）
+
+# 代码生成
+make gen           # 生成所有代码（推荐）
+make gen-user      # 只生成用户服务（Kitex）
+make gen-gateway   # 只生成网关（Hertz）
+make regen         # 清理后重新生成
+
+# 编译
+make build         # 编译所有服务
+make build-user    # 编译用户服务
+make build-gateway # 编译网关
+
+# 运行
+make run           # 运行所有服务
+make run-user      # 运行用户服务
+make run-gateway   # 运行网关
+
+# Docker
+make docker-up     # 启动基础服务
+make docker-down   # 停止基础服务
+
+# 其他
+make clean         # 清理生成的代码
+make test          # 运行测试
+make stop          # 停止所有服务
+```
+
+---
+
+## 🚀 扩展方向
+
+项目提供了 **10 大扩展方向**，包括 40+ 个具体扩展项：
+
+### 1. 功能扩展
 - [ ] 用户头像上传
 - [ ] 邮箱验证
 - [ ] 手机验证码
 - [ ] 忘记密码/重置密码
-- [ ] 用户权限管理
+- [ ] 用户权限管理（RBAC）
 - [ ] 用户等级系统
 - [ ] 用户标签系统
 
-#### 2. 新增服务
+### 2. 新增服务
 - [ ] 文章服务 (Post Service)
-  - 文章发布/编辑/删除
-  - 文章分类/标签
-  - 文章搜索
 - [ ] 评论服务 (Comment Service)
-  - 评论发布/回复
-  - 评论点赞
 - [ ] 通知服务 (Notification Service)
-  - 站内消息
-  - 邮件通知
-  - 推送通知
 
-#### 3. 中间件服务
-- [ ] 缓存服务 (Redis)
-  - 用户信息缓存
-  - 热点数据缓存
-  - 分布式锁
-- [ ] 消息队列 (RabbitMQ/Kafka)
-  - 异步任务处理
-  - 事件驱动
-- [ ] 文件存储 (MinIO/OSS)
-  - 图片上传
-  - 文件管理
+### 3. 中间件服务
+- [ ] Redis 缓存
+- [ ] 消息队列（RabbitMQ/Kafka）
+- [ ] 文件存储（MinIO/OSS）
 
-#### 4. 服务治理
-- [ ] 配置中心 (Consul/Nacos)
-- [ ] 链路追踪 (Jaeger/Zipkin)
-- [ ] 监控告警 (Prometheus + Grafana)
-- [ ] 熔断降级 (Sentinel)
-- [ ] 限流 (Token Bucket/Leaky Bucket)
-- [ ] 灰度发布
-- [ ] API 网关增强
-  - 请求限流
-  - 黑白名单
-  - IP 频率限制
+### 4. 服务治理
+- [ ] 配置中心（Consul/Nacos）
+- [ ] 链路追踪（Jaeger/Zipkin）
+- [ ] 监控告警（Prometheus + Grafana）
+- [ ] 熔断降级（Sentinel）
+- [ ] 限流
 
-#### 5. 可观测性
-- [ ] 日志收集 (ELK Stack)
-  - Elasticsearch
-  - Logstash
-  - Kibana
+### 5. 可观测性
+- [ ] 日志收集（ELK Stack）
 - [ ] 性能监控
-  - QPS 统计
-  - 响应时间监控
-  - 错误率监控
 - [ ] 业务监控
-  - 用户活跃度
-  - 接口调用统计
 
-#### 6. 安全增强
+### 6. 安全增强
 - [ ] HTTPS 支持
 - [ ] OAuth2.0 第三方登录
-- [ ] 双因素认证 (2FA)
+- [ ] 双因素认证（2FA）
 - [ ] API 签名验证
-- [ ] 请求加密
 - [ ] 防 XSS/CSRF
-- [ ] SQL 注入防护
-- [ ] 敏感信息脱敏
 
-#### 7. 性能优化
-- [ ] 数据库优化
-  - 索引优化
-  - 读写分离
-  - 分库分表
-- [ ] 缓存策略
-  - 多级缓存
-  - 缓存预热
-  - 缓存穿透/雪崩防护
+### 7. 性能优化
+- [ ] 数据库优化（索引、读写分离、分库分表）
+- [ ] 缓存策略（多级缓存）
 - [ ] 异步处理
-  - 消息队列
-  - 协程池
 - [ ] CDN 加速
-- [ ] 数据库连接池优化
 
-#### 8. DevOps
+### 8. DevOps
 - [ ] Docker 容器化
 - [ ] Kubernetes 部署
 - [ ] CI/CD 流程
-  - Jenkins
-  - GitLab CI
-  - GitHub Actions
 - [ ] 自动化测试
-  - 单元测试
-  - 集成测试
-  - 压力测试
-- [ ] 灰度发布
-- [ ] 蓝绿部署
-- [ ] 滚动更新
 
-#### 9. 前端应用
-- [ ] Web 管理后台 (Vue/React)
-- [ ] 移动端 APP (Flutter/React Native)
+### 9. 前端应用
+- [ ] Web 管理后台
+- [ ] 移动端 APP
 - [ ] 小程序
 
-#### 10. 数据分析
+### 10. 数据分析
 - [ ] 用户行为分析
 - [ ] 数据报表
 - [ ] 实时数据看板
-- [ ] 埋点系统
 
-## 接口文档
+---
 
-### 认证相关
+## 🎓 学习建议
 
-#### 注册
-- **URL**: `/api/v1/auth/register`
-- **Method**: `POST`
-- **Body**:
-```json
-{
-  "username": "zhangsan",
-  "email": "zhangsan@example.com",
-  "password": "password123",
-  "phone": "13800138000",
-  "age": 25
-}
+### 学习路径
+
 ```
-- **Response**:
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "user": {...},
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
+1. 理解 IDL 注解
+   └─> 阅读 IDL_ANNOTATIONS.md
+   └─> 查看 idl/user.thrift
 
-#### 登录
-- **URL**: `/api/v1/auth/login`
-- **Method**: `POST`
-- **Body**:
-```json
-{
-  "email": "zhangsan@example.com",
-  "password": "password123"
-}
+2. 代码生成实践
+   └─> 运行 make gen
+   └─> 查看生成的代码
+
+3. 实现业务逻辑
+   └─> 修改 api-gateway/biz/handler
+   └─> 实现 RPC 调用
+
+4. 测试 API
+   └─> 使用 TESTING.md 中的测试用例
+   └─> 理解请求流程
+
+5. 扩展功能
+   └─> 添加新的 IDL 接口
+   └─> 重新生成代码
+   └─> 实现新功能
 ```
 
-### 用户管理
+### 关键文件
 
-#### 获取用户信息
-- **URL**: `/api/v1/users/:id`
-- **Method**: `GET`
-- **Headers**: `Authorization: Bearer {token}`
+| 文件 | 说明 | 关注点 |
+|------|------|--------|
+| `idl/user.thrift` | IDL 定义 | 路由注解、参数校验 |
+| `scripts/generate.sh` | 代码生成脚本 | 生成流程 |
+| `api-gateway/biz/handler` | HTTP Handler | hz 生成的代码 |
+| `api-gateway/router_gen.go` | 路由注册 | hz 自动生成 |
+| `user-service/biz/handler` | RPC Handler | 业务逻辑实现 |
 
-#### 更新用户信息
-- **URL**: `/api/v1/users/:id`
-- **Method**: `PUT`
-- **Headers**: `Authorization: Bearer {token}`
+---
 
-#### 删除用户
-- **URL**: `/api/v1/users/:id`
-- **Method**: `DELETE`
-- **Headers**: `Authorization: Bearer {token}`
+## ❓ 常见问题
 
-## 开发指南
+### Q: 如何添加新的 API 接口？
 
-### 添加新接口
+**A:** 
+1. 在 `idl/user.thrift` 中添加新的接口定义
+2. 添加 Hertz 注解（`api.get`, `api.post` 等）
+3. 添加参数校验（`api.vd`）
+4. 运行 `make gen` 重新生成代码
+5. 在生成的 Handler 中实现业务逻辑
 
-1. 在 `idl/user.thrift` 中定义接口
-2. 运行 `kitex` 命令重新生成代码
-3. 在 `user-service/biz/handler` 中实现业务逻辑
-4. 在 `api-gateway/biz/handler` 中添加 HTTP 接口
-5. 在 `api-gateway/biz/router` 中注册路由
+### Q: hz 生成的代码可以修改吗？
 
-### 添加新服务
+**A:**
+- ✅ **可以修改**：`biz/handler` 中的业务逻辑
+- ❌ **不要修改**：`router_gen.go`、`biz/model` 等自动生成的基础代码
+- ⚠️ **注意**：更新 IDL 后重新生成，已修改的 handler 不会被覆盖
 
-1. 在 `idl/` 中创建新的 IDL 文件
-2. 创建新的服务目录（如 `post-service/`）
-3. 使用 `kitex` 生成代码
-4. 实现服务逻辑
-5. 在 API 网关中集成新服务客户端
+### Q: 如何添加参数校验？
 
-### 数据库迁移
-
-```bash
-# 进入 user-service
-cd user-service
-
-# 运行服务会自动执行 AutoMigrate
-go run main.go
+**A:** 在 IDL 中使用 `api.vd` 注解：
+```thrift
+1: required string Username (
+    api.body="username",
+    api.vd="len($) >= 3 && len($) <= 20"
+)
 ```
 
-## 常见问题
+### Q: 如何调试生成的代码？
 
-### Q: 如何修改数据库配置？
+**A:**
+1. 查看 `api-gateway/biz/handler` 中生成的 Handler
+2. 查看 `api-gateway/router_gen.go` 中的路由注册
+3. 运行服务，查看日志输出
+4. 使用 Postman 或 curl 测试接口
 
-A: 编辑 `user-service/conf/config.yaml` 文件。
+---
 
-### Q: 如何修改服务端口？
+## 技术栈
 
-A: 
-- API 网关端口：编辑 `api-gateway/conf/config.yaml`
-- 用户服务端口：编辑 `user-service/conf/config.yaml`
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **GORM** | v1.25+ | ORM 框架 |
+| **Hertz** | v0.8+ | HTTP 框架 |
+| **Kitex** | v0.9+ | RPC 框架 |
+| **Etcd** | v3.5+ | 服务发现 |
+| **MySQL** | v8.0+ | 数据库 |
+| **Redis** | v7+ | 缓存 |
+| **JWT** | v5 | 认证 |
 
-### Q: 如何添加新的中间件？
+---
 
-A: 在 `api-gateway/biz/middleware/` 中创建新文件，然后在 `main.go` 中注册。
+## 接口列表
 
-### Q: 服务注册失败怎么办？
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/auth/register` | 用户注册 | ❌ |
+| POST | `/api/v1/auth/login` | 用户登录 | ❌ |
+| GET | `/api/v1/users` | 用户列表 | ❌ |
+| GET | `/api/v1/users/:id` | 获取用户 | ❌ |
+| GET | `/api/v1/users/me` | 当前用户 | ✅ |
+| PUT | `/api/v1/users/:id` | 更新用户 | ✅ |
+| DELETE | `/api/v1/users/:id` | 删除用户 | ✅ |
+| GET | `/health` | 健康检查 | ❌ |
 
-A: 检查 Etcd 是否正常运行，确保配置中的 Etcd 地址正确。
+---
 
-## 贡献
+## 贡献指南
 
 欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支
+3. 提交代码
+4. 推送到分支
+5. 开启 Pull Request
+
+---
 
 ## 许可证
 
 MIT License
+
+---
+
+## 联系方式
+
+- **Issues**: [提交问题](https://github.com/yourusername/microservices-project/issues)
+- **Email**: your-email@example.com
+
+---
+
+<div align="center">
+
+**⭐ 如果这个项目对你有帮助，请给个 Star ⭐**
+
+Made with ❤️ by Go Developers
+
+</div>
