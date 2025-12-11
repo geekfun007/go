@@ -1,0 +1,26 @@
+server:
+  address: "0.0.0.0"
+  port: 8888
+  service_name: "user-service"
+
+database:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "root123"
+  database: "userdb"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: 3600 # seconds
+
+etcd:
+  endpoints:
+    - "127.0.0.1:2379"
+
+jwt:
+  secret: "your-super-secret-key-change-in-production"
+  expire_hours: 24
+
+log:
+  level: "info"
+  filename: "logs/user-service.log"
