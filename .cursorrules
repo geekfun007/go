@@ -1,0 +1,40 @@
+# Go Slice Operations Project Rules
+
+This project provides comprehensive documentation and examples for Go slice operations.
+
+## Project Structure
+
+- `README.md` - Main documentation with detailed explanations
+- `QUICKSTART.md` - Quick start guide for beginners
+- `CHEATSHEET.md` - Quick reference for common operations
+- `sliceops.go` - Reusable slice operation functions library
+- `sliceops_test.go` - Unit tests and benchmarks
+- `examples/` - 8 comprehensive example programs demonstrating different aspects
+
+## Code Style
+
+- Follow standard Go conventions
+- Use descriptive variable names in examples
+- Include comments explaining concepts
+- Provide both English and Chinese documentation where applicable
+
+## Running Examples
+
+All examples can be run individually or through the interactive menu:
+
+```bash
+cd examples
+go run main.go
+```
+
+## Testing
+
+Run all tests:
+```bash
+go test -v
+```
+
+Run benchmarks:
+```bash
+go test -bench=. -benchmem
+```
