@@ -1,0 +1,966 @@
+# 并发模式 / Concurrency Patterns
+
+### 5.1 Worker Pool 模式
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+// Job 代表一个任务 / Job represents a task
+type Job struct {
+    ID   int
+    Data string
+}
+
+// Result 代表任务结果 / Result represents task result
+type Result struct {
+    JobID  int
+    Output string
+}
+
+// Worker Pool 实现 / Worker Pool implementation
+func workerPool(numWorkers int, jobs <-chan Job, results chan<- Result) {
+    var wg sync.WaitGroup
+    
+    for i := 0; i < numWorkers; i++ {
+        wg.Add(1)
+        go func(workerID int) {
+            defer wg.Done()
+            for job := range jobs {
+                // 处理任务 / Process job
+                time.Sleep(100 * time.Millisecond)
+                results <- Result{
+                    JobID:  job.ID,
+                    Output: fmt.Sprintf("Worker %d processed: %s", workerID, job.Data),
+                }
+            }
+        }(i)
+    }
+    
+    wg.Wait()
+    close(results)
+}
+
+func main() {
+    jobs := make(chan Job, 100)
+    results := make(chan Result, 100)
+    
+    // 启动 worker pool / Start worker pool
+    go workerPool(3, jobs, results)
+    
+    // 发送任务 / Send jobs
+    for i := 1; i <= 10; i++ {
+        jobs <- Job{ID: i, Data: fmt.Sprintf("task-%d", i)}
+    }
+    close(jobs)
+    
+    // 收集结果 / Collect results
+    for result := range results {
+        fmt.Printf("Result: Job %d -> %s\n", result.JobID, result.Output)
+    }
+}
+```
+
+### 5.2 Fan-Out/Fan-In 模式
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+// Fan-Out: 一个 channel 分发到多个 goroutine
+// Fan-In: 多个 channel 合并到一个 channel
+
+func fanOut(input <-chan int, numWorkers int) []<-chan int {
+    outputs := make([]<-chan int, numWorkers)
+    
+    for i := 0; i < numWorkers; i++ {
+        output := make(chan int)
+        outputs[i] = output
+        
+        go func(out chan<- int) {
+            for n := range input {
+                out <- n * n  // 处理：计算平方
+            }
+            close(out)
+        }(output)
+    }
+    
+    return outputs
+}
+
+func fanIn(inputs ...<-chan int) <-chan int {
+    output := make(chan int)
+    var wg sync.WaitGroup
+    
+    for _, input := range inputs {
+        wg.Add(1)
+        go func(in <-chan int) {
+            defer wg.Done()
+            for n := range in {
+                output <- n
+            }
+        }(input)
+    }
+    
+    go func() {
+        wg.Wait()
+        close(output)
+    }()
+    
+    return output
+}
+
+func main() {
+    // 创建输入 channel / Create input channel
+    input := make(chan int)
+    go func() {
+        for i := 1; i <= 10; i++ {
+            input <- i
+        }
+        close(input)
+    }()
+    
+    // Fan-Out 到 3 个 worker
+    workers := fanOut(input, 3)
+    
+    // Fan-In 合并结果
+    results := fanIn(workers...)
+    
+    // 收集结果
+    for result := range results {
+        fmt.Println("Result:", result)
+    }
+}
+```
+
+### 5.3 Pipeline 模式
+
+```go
+package main
+
+import "fmt"
+
+// Pipeline 阶段 / Pipeline stages
+
+// 生成数字 / Generate numbers
+func generate(nums ...int) <-chan int {
+    out := make(chan int)
+    go func() {
+        for _, n := range nums {
+            out <- n
+        }
+        close(out)
+    }()
+    return out
+}
+
+// 平方 / Square
+func square(in <-chan int) <-chan int {
+    out := make(chan int)
+    go func() {
+        for n := range in {
+            out <- n * n
+        }
+        close(out)
+    }()
+    return out
+}
+
+// 过滤偶数 / Filter even
+func filterEven(in <-chan int) <-chan int {
+    out := make(chan int)
+    go func() {
+        for n := range in {
+            if n%2 == 0 {
+                out <- n
+            }
+        }
+        close(out)
+    }()
+    return out
+}
+
+// 打印 / Print
+func printer(in <-chan int) {
+    for n := range in {
+        fmt.Println("Output:", n)
+    }
+}
+
+func main() {
+    // 构建 pipeline
+    // generate -> square -> filterEven -> print
+    
+    nums := generate(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    squared := square(nums)
+    evens := filterEven(squared)
+    printer(evens)
+}
+```
+
+### 5.4 取消和超时模式 / Cancellation & Timeout Patterns
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+)
+
+func main() {
+    // Context 取消 / Context cancellation
+    ctx, cancel := context.WithCancel(context.Background())
+    
+    go func() {
+        for {
+            select {
+            case <-ctx.Done():
+                fmt.Println("Worker cancelled")
+                return
+            default:
+                fmt.Println("Working...")
+                time.Sleep(200 * time.Millisecond)
+            }
+        }
+    }()
+    
+    time.Sleep(500 * time.Millisecond)
+    cancel()  // 取消
+    time.Sleep(100 * time.Millisecond)
+    
+    // Context 超时 / Context timeout
+    ctx2, cancel2 := context.WithTimeout(context.Background(), 300*time.Millisecond)
+    defer cancel2()
+    
+    select {
+    case <-time.After(500 * time.Millisecond):
+        fmt.Println("Operation completed")
+    case <-ctx2.Done():
+        fmt.Println("Operation timed out:", ctx2.Err())
+    }
+    
+    // Context 截止时间 / Context deadline
+    deadline := time.Now().Add(200 * time.Millisecond)
+    ctx3, cancel3 := context.WithDeadline(context.Background(), deadline)
+    defer cancel3()
+    
+    select {
+    case <-time.After(500 * time.Millisecond):
+        fmt.Println("Completed before deadline")
+    case <-ctx3.Done():
+        fmt.Println("Deadline exceeded:", ctx3.Err())
+    }
+    
+    // 使用 context 传递值 / Pass values with context
+    ctx4 := context.WithValue(context.Background(), "userID", 12345)
+    
+    processRequest := func(ctx context.Context) {
+        if userID := ctx.Value("userID"); userID != nil {
+            fmt.Println("Processing request for user:", userID)
+        }
+    }
+    
+    processRequest(ctx4)
+}
+```
+
+### 5.5 错误组模式 / Error Group Pattern
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    "golang.org/x/sync/errgroup"
+)
+
+func main() {
+    // errgroup - 带错误处理的并发
+    // errgroup - concurrency with error handling
+    
+    g, ctx := errgroup.WithContext(context.Background())
+    
+    // 启动多个并发任务 / Start multiple concurrent tasks
+    for i := 1; i <= 3; i++ {
+        i := i
+        g.Go(func() error {
+            select {
+            case <-ctx.Done():
+                return ctx.Err()
+            case <-time.After(time.Duration(i) * 100 * time.Millisecond):
+                if i == 2 {
+                    return fmt.Errorf("task %d failed", i)
+                }
+                fmt.Printf("Task %d completed\n", i)
+                return nil
+            }
+        })
+    }
+    
+    // 等待所有任务完成或第一个错误
+    // Wait for all tasks or first error
+    if err := g.Wait(); err != nil {
+        fmt.Println("Error:", err)
+    }
+    
+    // 带限制的 errgroup / errgroup with limit
+    g2, _ := errgroup.WithContext(context.Background())
+    g2.SetLimit(2)  // 最多 2 个并发
+    
+    for i := 0; i < 5; i++ {
+        i := i
+        g2.Go(func() error {
+            fmt.Printf("Limited task %d running\n", i)
+            time.Sleep(100 * time.Millisecond)
+            return nil
+        })
+    }
+    g2.Wait()
+}
+```
+
+### 5.6 信号量模式 / Semaphore Pattern
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    "golang.org/x/sync/semaphore"
+)
+
+func main() {
+    // 使用 channel 实现信号量 / Implement semaphore with channel
+    sem := make(chan struct{}, 3)  // 最多 3 个并发
+    
+    for i := 0; i < 10; i++ {
+        sem <- struct{}{}  // 获取信号量
+        go func(n int) {
+            defer func() { <-sem }()  // 释放信号量
+            fmt.Printf("Task %d running\n", n)
+            time.Sleep(100 * time.Millisecond)
+        }(i)
+    }
+    
+    // 等待所有完成
+    for i := 0; i < cap(sem); i++ {
+        sem <- struct{}{}
+    }
+    
+    fmt.Println("\n--- Using golang.org/x/sync/semaphore ---")
+    
+    // 使用 semaphore 包 / Using semaphore package
+    sem2 := semaphore.NewWeighted(3)
+    ctx := context.Background()
+    
+    for i := 0; i < 10; i++ {
+        if err := sem2.Acquire(ctx, 1); err != nil {
+            break
+        }
+        go func(n int) {
+            defer sem2.Release(1)
+            fmt.Printf("Weighted task %d running\n", n)
+            time.Sleep(100 * time.Millisecond)
+        }(i)
+    }
+    
+    // 等待所有完成
+    sem2.Acquire(ctx, 3)
+}
+```
+
+### 5.7 限流模式 / Rate Limiting Patterns
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "sync"
+    "time"
+
+    "golang.org/x/time/rate"
+)
+
+// ========================================
+// 方式1: 使用 time.Ticker 实现简单限流
+// Method 1: Simple rate limiting with time.Ticker
+// ========================================
+
+func tickerRateLimiter() {
+    fmt.Println("=== Ticker Rate Limiter ===")
+    
+    // 每 200ms 允许一个请求 (5 QPS)
+    // Allow one request per 200ms (5 QPS)
+    limiter := time.NewTicker(200 * time.Millisecond)
+    defer limiter.Stop()
+    
+    requests := make(chan int, 10)
+    for i := 1; i <= 5; i++ {
+        requests <- i
+    }
+    close(requests)
+    
+    for req := range requests {
+        <-limiter.C  // 等待下一个时间点 / Wait for next tick
+        fmt.Printf("[%s] Processing request %d\n", time.Now().Format("15:04:05.000"), req)
+    }
+}
+
+// ========================================
+// 方式2: 使用 Channel 实现令牌桶
+// Method 2: Token Bucket with Channel
+// ========================================
+
+type TokenBucket struct {
+    tokens   chan struct{}
+    capacity int
+    rate     time.Duration
+    stop     chan struct{}
+}
+
+func NewTokenBucket(capacity int, refillRate time.Duration) *TokenBucket {
+    tb := &TokenBucket{
+        tokens:   make(chan struct{}, capacity),
+        capacity: capacity,
+        rate:     refillRate,
+        stop:     make(chan struct{}),
+    }
+    
+    // 初始填满令牌 / Initially fill tokens
+    for i := 0; i < capacity; i++ {
+        tb.tokens <- struct{}{}
+    }
+    
+    // 启动令牌补充 goroutine / Start token refill goroutine
+    go tb.refill()
+    
+    return tb
+}
+
+func (tb *TokenBucket) refill() {
+    ticker := time.NewTicker(tb.rate)
+    defer ticker.Stop()
+    
+    for {
+        select {
+        case <-ticker.C:
+            select {
+            case tb.tokens <- struct{}{}:
+                // 成功添加令牌 / Successfully added token
+            default:
+                // 桶已满 / Bucket is full
+            }
+        case <-tb.stop:
+            return
+        }
+    }
+}
+
+func (tb *TokenBucket) Allow() bool {
+    select {
+    case <-tb.tokens:
+        return true
+    default:
+        return false
+    }
+}
+
+func (tb *TokenBucket) Wait(ctx context.Context) error {
+    select {
+    case <-tb.tokens:
+        return nil
+    case <-ctx.Done():
+        return ctx.Err()
+    }
+}
+
+func (tb *TokenBucket) Stop() {
+    close(tb.stop)
+}
+
+func tokenBucketDemo() {
+    fmt.Println("\n=== Token Bucket Rate Limiter ===")
+    
+    // 容量5，每100ms补充一个令牌 (10 QPS)
+    // Capacity 5, refill one token per 100ms (10 QPS)
+    bucket := NewTokenBucket(5, 100*time.Millisecond)
+    defer bucket.Stop()
+    
+    // 模拟突发请求 / Simulate burst requests
+    for i := 1; i <= 10; i++ {
+        if bucket.Allow() {
+            fmt.Printf("[%s] Request %d: Allowed\n", time.Now().Format("15:04:05.000"), i)
+        } else {
+            fmt.Printf("[%s] Request %d: Rejected (rate limited)\n", time.Now().Format("15:04:05.000"), i)
+        }
+    }
+    
+    // 等待令牌补充 / Wait for token refill
+    time.Sleep(300 * time.Millisecond)
+    fmt.Println("After waiting 300ms:")
+    
+    for i := 11; i <= 13; i++ {
+        if bucket.Allow() {
+            fmt.Printf("[%s] Request %d: Allowed\n", time.Now().Format("15:04:05.000"), i)
+        } else {
+            fmt.Printf("[%s] Request %d: Rejected\n", time.Now().Format("15:04:05.000"), i)
+        }
+    }
+}
+
+// ========================================
+// 方式3: 使用 golang.org/x/time/rate (推荐)
+// Method 3: Using golang.org/x/time/rate (Recommended)
+// ========================================
+
+func officialRateLimiterDemo() {
+    fmt.Println("\n=== Official rate.Limiter ===")
+    
+    // 创建限流器: 每秒 5 个请求，最大突发 10 个
+    // Create limiter: 5 requests per second, max burst 10
+    limiter := rate.NewLimiter(rate.Limit(5), 10)
+    
+    // Allow(): 非阻塞检查 / Non-blocking check
+    fmt.Println("Non-blocking Allow():")
+    for i := 1; i <= 15; i++ {
+        if limiter.Allow() {
+            fmt.Printf("  Request %d: Allowed\n", i)
+        } else {
+            fmt.Printf("  Request %d: Rejected\n", i)
+        }
+    }
+    
+    // Wait(): 阻塞等待 / Blocking wait
+    fmt.Println("\nBlocking Wait():")
+    limiter2 := rate.NewLimiter(rate.Every(200*time.Millisecond), 1)  // 5 QPS, burst 1
+    
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+    defer cancel()
+    
+    for i := 1; i <= 5; i++ {
+        if err := limiter2.Wait(ctx); err != nil {
+            fmt.Printf("  Request %d: Error - %v\n", i, err)
+            break
+        }
+        fmt.Printf("  [%s] Request %d: Processed\n", time.Now().Format("15:04:05.000"), i)
+    }
+    
+    // Reserve(): 预约令牌 / Reserve token
+    fmt.Println("\nReserve() for scheduling:")
+    limiter3 := rate.NewLimiter(rate.Limit(2), 1)  // 2 QPS
+    
+    for i := 1; i <= 3; i++ {
+        reservation := limiter3.Reserve()
+        if !reservation.OK() {
+            fmt.Printf("  Request %d: Cannot reserve\n", i)
+            continue
+        }
+        delay := reservation.Delay()
+        fmt.Printf("  Request %d: Wait %v before processing\n", i, delay)
+        time.Sleep(delay)
+        fmt.Printf("  [%s] Request %d: Processed\n", time.Now().Format("15:04:05.000"), i)
+    }
+    
+    // 动态调整限流速率 / Dynamic rate adjustment
+    fmt.Println("\nDynamic rate adjustment:")
+    limiter4 := rate.NewLimiter(rate.Limit(10), 5)
+    fmt.Printf("  Initial rate: %.0f/s\n", float64(limiter4.Limit()))
+    
+    limiter4.SetLimit(rate.Limit(20))
+    fmt.Printf("  New rate: %.0f/s\n", float64(limiter4.Limit()))
+    
+    limiter4.SetBurst(10)
+    fmt.Printf("  New burst: %d\n", limiter4.Burst())
+}
+
+// ========================================
+// 方式4: 滑动窗口限流器
+// Method 4: Sliding Window Rate Limiter
+// ========================================
+
+type SlidingWindowLimiter struct {
+    mu          sync.Mutex
+    timestamps  []time.Time
+    windowSize  time.Duration
+    maxRequests int
+}
+
+func NewSlidingWindowLimiter(windowSize time.Duration, maxRequests int) *SlidingWindowLimiter {
+    return &SlidingWindowLimiter{
+        timestamps:  make([]time.Time, 0),
+        windowSize:  windowSize,
+        maxRequests: maxRequests,
+    }
+}
+
+func (s *SlidingWindowLimiter) Allow() bool {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    now := time.Now()
+    windowStart := now.Add(-s.windowSize)
+    
+    // 移除窗口外的请求 / Remove requests outside window
+    validTimestamps := make([]time.Time, 0)
+    for _, ts := range s.timestamps {
+        if ts.After(windowStart) {
+            validTimestamps = append(validTimestamps, ts)
+        }
+    }
+    s.timestamps = validTimestamps
+    
+    // 检查是否超过限制 / Check if limit exceeded
+    if len(s.timestamps) >= s.maxRequests {
+        return false
+    }
+    
+    s.timestamps = append(s.timestamps, now)
+    return true
+}
+
+func (s *SlidingWindowLimiter) Count() int {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    return len(s.timestamps)
+}
+
+func slidingWindowDemo() {
+    fmt.Println("\n=== Sliding Window Rate Limiter ===")
+    
+    // 1秒窗口内最多5个请求 / Max 5 requests per 1-second window
+    limiter := NewSlidingWindowLimiter(time.Second, 5)
+    
+    // 快速发送请求 / Send requests quickly
+    for i := 1; i <= 8; i++ {
+        if limiter.Allow() {
+            fmt.Printf("[%s] Request %d: Allowed (count: %d)\n",
+                time.Now().Format("15:04:05.000"), i, limiter.Count())
+        } else {
+            fmt.Printf("[%s] Request %d: Rejected (count: %d)\n",
+                time.Now().Format("15:04:05.000"), i, limiter.Count())
+        }
+        time.Sleep(100 * time.Millisecond)
+    }
+    
+    // 等待窗口滑动 / Wait for window to slide
+    fmt.Println("Waiting 600ms for window to slide...")
+    time.Sleep(600 * time.Millisecond)
+    
+    for i := 9; i <= 11; i++ {
+        if limiter.Allow() {
+            fmt.Printf("[%s] Request %d: Allowed (count: %d)\n",
+                time.Now().Format("15:04:05.000"), i, limiter.Count())
+        } else {
+            fmt.Printf("[%s] Request %d: Rejected (count: %d)\n",
+                time.Now().Format("15:04:05.000"), i, limiter.Count())
+        }
+    }
+}
+
+// ========================================
+// 方式5: 漏桶限流器
+// Method 5: Leaky Bucket Rate Limiter
+// ========================================
+
+type LeakyBucket struct {
+    capacity    int           // 桶容量 / Bucket capacity
+    remaining   int           // 剩余容量 / Remaining capacity
+    leakRate    time.Duration // 漏水速率 / Leak rate
+    lastLeakAt  time.Time     // 上次漏水时间 / Last leak time
+    mu          sync.Mutex
+}
+
+func NewLeakyBucket(capacity int, leakRate time.Duration) *LeakyBucket {
+    return &LeakyBucket{
+        capacity:   capacity,
+        remaining:  capacity,
+        leakRate:   leakRate,
+        lastLeakAt: time.Now(),
+    }
+}
+
+func (lb *LeakyBucket) leak() {
+    now := time.Now()
+    elapsed := now.Sub(lb.lastLeakAt)
+    
+    // 计算应该漏掉多少水 / Calculate how much water should leak
+    leaks := int(elapsed / lb.leakRate)
+    if leaks > 0 {
+        lb.remaining = min(lb.capacity, lb.remaining+leaks)
+        lb.lastLeakAt = lb.lastLeakAt.Add(time.Duration(leaks) * lb.leakRate)
+    }
+}
+
+func (lb *LeakyBucket) Allow() bool {
+    lb.mu.Lock()
+    defer lb.mu.Unlock()
+    
+    lb.leak()
+    
+    if lb.remaining > 0 {
+        lb.remaining--
+        return true
+    }
+    return false
+}
+
+func leakyBucketDemo() {
+    fmt.Println("\n=== Leaky Bucket Rate Limiter ===")
+    
+    // 容量5，每200ms漏一个 (5 QPS)
+    // Capacity 5, leak one per 200ms (5 QPS)
+    bucket := NewLeakyBucket(5, 200*time.Millisecond)
+    
+    // 突发请求 / Burst requests
+    fmt.Println("Burst requests:")
+    for i := 1; i <= 8; i++ {
+        if bucket.Allow() {
+            fmt.Printf("  Request %d: Allowed\n", i)
+        } else {
+            fmt.Printf("  Request %d: Rejected\n", i)
+        }
+    }
+    
+    // 等待漏桶恢复 / Wait for bucket to recover
+    fmt.Println("Waiting 500ms...")
+    time.Sleep(500 * time.Millisecond)
+    
+    fmt.Println("After waiting:")
+    for i := 9; i <= 11; i++ {
+        if bucket.Allow() {
+            fmt.Printf("  Request %d: Allowed\n", i)
+        } else {
+            fmt.Printf("  Request %d: Rejected\n", i)
+        }
+    }
+}
+
+// ========================================
+// 方式6: 并发限流器 (限制同时执行的 goroutine 数量)
+// Method 6: Concurrency Limiter (limit concurrent goroutines)
+// ========================================
+
+type ConcurrencyLimiter struct {
+    sem chan struct{}
+}
+
+func NewConcurrencyLimiter(maxConcurrent int) *ConcurrencyLimiter {
+    return &ConcurrencyLimiter{
+        sem: make(chan struct{}, maxConcurrent),
+    }
+}
+
+func (cl *ConcurrencyLimiter) Acquire() {
+    cl.sem <- struct{}{}
+}
+
+func (cl *ConcurrencyLimiter) Release() {
+    <-cl.sem
+}
+
+func (cl *ConcurrencyLimiter) TryAcquire() bool {
+    select {
+    case cl.sem <- struct{}{}:
+        return true
+    default:
+        return false
+    }
+}
+
+func (cl *ConcurrencyLimiter) AcquireWithTimeout(timeout time.Duration) bool {
+    select {
+    case cl.sem <- struct{}{}:
+        return true
+    case <-time.After(timeout):
+        return false
+    }
+}
+
+func concurrencyLimiterDemo() {
+    fmt.Println("\n=== Concurrency Limiter ===")
+    
+    // 最多3个并发 / Max 3 concurrent
+    limiter := NewConcurrencyLimiter(3)
+    var wg sync.WaitGroup
+    
+    for i := 1; i <= 10; i++ {
+        wg.Add(1)
+        go func(id int) {
+            defer wg.Done()
+            
+            limiter.Acquire()
+            defer limiter.Release()
+            
+            fmt.Printf("[%s] Task %d: Started\n", time.Now().Format("15:04:05.000"), id)
+            time.Sleep(200 * time.Millisecond)  // 模拟工作 / Simulate work
+            fmt.Printf("[%s] Task %d: Completed\n", time.Now().Format("15:04:05.000"), id)
+        }(i)
+    }
+    
+    wg.Wait()
+    fmt.Println("All tasks completed")
+}
+
+// ========================================
+// 方式7: 基于 IP/Key 的分布式限流
+// Method 7: Per-Key Rate Limiting
+// ========================================
+
+type PerKeyRateLimiter struct {
+    mu       sync.RWMutex
+    limiters map[string]*rate.Limiter
+    rate     rate.Limit
+    burst    int
+}
+
+func NewPerKeyRateLimiter(r rate.Limit, burst int) *PerKeyRateLimiter {
+    return &PerKeyRateLimiter{
+        limiters: make(map[string]*rate.Limiter),
+        rate:     r,
+        burst:    burst,
+    }
+}
+
+func (p *PerKeyRateLimiter) getLimiter(key string) *rate.Limiter {
+    p.mu.RLock()
+    limiter, exists := p.limiters[key]
+    p.mu.RUnlock()
+    
+    if exists {
+        return limiter
+    }
+    
+    p.mu.Lock()
+    defer p.mu.Unlock()
+    
+    // 双重检查 / Double check
+    if limiter, exists = p.limiters[key]; exists {
+        return limiter
+    }
+    
+    limiter = rate.NewLimiter(p.rate, p.burst)
+    p.limiters[key] = limiter
+    return limiter
+}
+
+func (p *PerKeyRateLimiter) Allow(key string) bool {
+    return p.getLimiter(key).Allow()
+}
+
+func (p *PerKeyRateLimiter) Wait(ctx context.Context, key string) error {
+    return p.getLimiter(key).Wait(ctx)
+}
+
+func perKeyRateLimiterDemo() {
+    fmt.Println("\n=== Per-Key Rate Limiter ===")
+    
+    // 每个 key 每秒 2 个请求，突发 3 个
+    // 2 requests per second per key, burst 3
+    limiter := NewPerKeyRateLimiter(rate.Limit(2), 3)
+    
+    keys := []string{"user1", "user2", "user1", "user1", "user2", "user1", "user1"}
+    
+    for i, key := range keys {
+        if limiter.Allow(key) {
+            fmt.Printf("  Request %d from %s: Allowed\n", i+1, key)
+        } else {
+            fmt.Printf("  Request %d from %s: Rejected\n", i+1, key)
+        }
+    }
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+func main() {
+    tickerRateLimiter()
+    tokenBucketDemo()
+    officialRateLimiterDemo()
+    slidingWindowDemo()
+    leakyBucketDemo()
+    concurrencyLimiterDemo()
+    perKeyRateLimiterDemo()
+}
+```
+
+### 限流算法对比 / Rate Limiting Algorithms Comparison
+
+| 算法 / Algorithm | 特点 / Features | 适用场景 / Use Cases |
+|-----------------|----------------|---------------------|
+| **固定窗口 / Fixed Window** | 简单实现，可能有边界突发 | 简单场景 |
+| **滑动窗口 / Sliding Window** | 平滑限流，内存占用较大 | 需要精确控制 |
+| **令牌桶 / Token Bucket** | 允许突发，平均速率限制 | API 限流，允许突发 |
+| **漏桶 / Leaky Bucket** | 恒定速率，不允许突发 | 需要恒定速率的场景 |
+| **并发限制 / Concurrency** | 限制同时执行数量 | 资源保护，数据库连接 |
+
+### 最佳实践 / Best Practices
+
+```go
+// 1. 使用 context 支持取消和超时
+// Use context for cancellation and timeout
+func rateLimitedOperation(ctx context.Context, limiter *rate.Limiter) error {
+    if err := limiter.Wait(ctx); err != nil {
+        return fmt.Errorf("rate limit wait: %w", err)
+    }
+    // 执行操作...
+    return nil
+}
+
+// 2. 分层限流: 全局 + 用户级别
+// Layered rate limiting: Global + Per-user
+type LayeredLimiter struct {
+    global  *rate.Limiter
+    perUser *PerKeyRateLimiter
+}
+
+func (l *LayeredLimiter) Allow(userID string) bool {
+    if !l.global.Allow() {
+        return false
+    }
+    return l.perUser.Allow(userID)
+}
+
+// 3. 优雅降级: 限流时返回缓存数据
+// Graceful degradation: Return cached data when rate limited
+
+// 4. 监控限流指标
+// Monitor rate limiting metrics
+type MetricsLimiter struct {
+    limiter        *rate.Limiter
+    allowedCount   int64
+    rejectedCount  int64
+}
+
+func (m *MetricsLimiter) Allow() bool {
+    if m.limiter.Allow() {
+        atomic.AddInt64(&m.allowedCount, 1)
+        return true
+    }
+    atomic.AddInt64(&m.rejectedCount, 1)
+    return false
+}
+```
+
