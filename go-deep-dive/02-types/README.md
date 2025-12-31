@@ -1560,3 +1560,432 @@ func main() {
     fmt.Println("copy.Name:", copy.Name)          // "Copy"
 }
 ```
+
+## 9. JSON 处理 / JSON Handling
+
+### 9.1 基本序列化与反序列化 / Basic Serialization & Deserialization
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+)
+
+type Person struct {
+    Name    string   `json:"name"`
+    Age     int      `json:"age"`
+    Email   string   `json:"email,omitempty"`  // 空值时省略
+    Friends []string `json:"friends"`
+    private string   // 小写字段不会被序列化
+}
+
+func main() {
+    // 序列化 (struct -> JSON) / Marshal
+    p := Person{
+        Name:    "Alice",
+        Age:     30,
+        Email:   "alice@example.com",
+        Friends: []string{"Bob", "Charlie"},
+    }
+    
+    data, _ := json.Marshal(p)
+    fmt.Println("Marshal:", string(data))
+    
+    // 格式化输出 / Pretty print
+    prettyData, _ := json.MarshalIndent(p, "", "  ")
+    fmt.Println("MarshalIndent:\n", string(prettyData))
+    
+    // 反序列化 (JSON -> struct) / Unmarshal
+    jsonStr := `{"name":"Bob","age":25,"friends":["Alice"]}`
+    var p2 Person
+    json.Unmarshal([]byte(jsonStr), &p2)
+    fmt.Printf("Unmarshal: %+v\n", p2)
+}
+```
+
+### 9.2 JSON 标签 / JSON Tags
+
+```go
+type Example struct {
+    Field1 string `json:"field_1"`           // 重命名
+    Field2 string `json:"field_2,omitempty"` // 空值时省略
+    Field3 string `json:"-"`                 // 忽略字段
+    Field4 int    `json:"field_4,string"`    // 数字作为字符串
+}
+```
+
+### 9.3 动态 JSON / Dynamic JSON
+
+```go
+func dynamicJSON() {
+    jsonStr := `{"name":"Alice","age":30,"active":true}`
+    
+    var data map[string]interface{}
+    json.Unmarshal([]byte(jsonStr), &data)
+    
+    name := data["name"].(string)
+    age := data["age"].(float64)  // JSON 数字默认为 float64
+    fmt.Println(name, int(age))
+    
+    // 使用 json.RawMessage 延迟解析
+    type Response struct {
+        Type    string          `json:"type"`
+        Payload json.RawMessage `json:"payload"`
+    }
+}
+```
+
+### 9.4 自定义序列化 / Custom Serialization
+
+```go
+type CustomTime struct {
+    time.Time
+}
+
+func (ct CustomTime) MarshalJSON() ([]byte, error) {
+    return json.Marshal(ct.Format("2006-01-02 15:04:05"))
+}
+
+func (ct *CustomTime) UnmarshalJSON(data []byte) error {
+    var s string
+    json.Unmarshal(data, &s)
+    t, _ := time.Parse("2006-01-02 15:04:05", s)
+    ct.Time = t
+    return nil
+}
+```
+
+## 10. 接口 / Interface
+
+### 10.1 接口基础 / Interface Basics
+
+```go
+package main
+
+import (
+    "fmt"
+    "math"
+)
+
+// 接口定义方法签名集合 / Interface defines method signatures
+type Shape interface {
+    Area() float64
+    Perimeter() float64
+}
+
+// 隐式实现接口 / Implicit implementation
+type Rectangle struct {
+    Width, Height float64
+}
+
+func (r Rectangle) Area() float64 {
+    return r.Width * r.Height
+}
+
+func (r Rectangle) Perimeter() float64 {
+    return 2 * (r.Width + r.Height)
+}
+
+type Circle struct {
+    Radius float64
+}
+
+func (c Circle) Area() float64 {
+    return math.Pi * c.Radius * c.Radius
+}
+
+func (c Circle) Perimeter() float64 {
+    return 2 * math.Pi * c.Radius
+}
+
+func PrintShapeInfo(s Shape) {
+    fmt.Printf("Area: %.2f, Perimeter: %.2f\n", s.Area(), s.Perimeter())
+}
+
+func main() {
+    rect := Rectangle{Width: 10, Height: 5}
+    circle := Circle{Radius: 7}
+    
+    PrintShapeInfo(rect)
+    PrintShapeInfo(circle)
+    
+    // 接口切片 / Interface slice
+    shapes := []Shape{rect, circle}
+    for _, s := range shapes {
+        PrintShapeInfo(s)
+    }
+}
+```
+
+### 10.2 空接口与类型断言 / Empty Interface & Type Assertion
+
+```go
+func main() {
+    // 空接口可存储任何类型 / Empty interface stores any type
+    var anything interface{}  // 或 any (Go 1.18+)
+    
+    anything = 42
+    anything = "hello"
+    anything = []int{1, 2, 3}
+    
+    // 类型断言 / Type assertion
+    var i interface{} = "hello"
+    s, ok := i.(string)
+    if ok {
+        fmt.Println("String:", s)
+    }
+    
+    // 类型 switch / Type switch
+    switch v := i.(type) {
+    case int:
+        fmt.Printf("int: %d\n", v)
+    case string:
+        fmt.Printf("string: %s\n", v)
+    default:
+        fmt.Printf("unknown: %T\n", v)
+    }
+}
+```
+
+### 10.3 接口组合 / Interface Composition
+
+```go
+type Reader interface {
+    Read(p []byte) (n int, err error)
+}
+
+type Writer interface {
+    Write(p []byte) (n int, err error)
+}
+
+type ReadWriter interface {
+    Reader
+    Writer
+}
+```
+
+### 10.4 常见标准库接口 / Common Standard Library Interfaces
+
+```go
+// fmt.Stringer
+type Person struct {
+    Name string
+    Age  int
+}
+
+func (p Person) String() string {
+    return fmt.Sprintf("%s (%d)", p.Name, p.Age)
+}
+
+// error
+type MyError struct {
+    Code    int
+    Message string
+}
+
+func (e MyError) Error() string {
+    return fmt.Sprintf("Error %d: %s", e.Code, e.Message)
+}
+
+// sort.Interface
+type ByAge []Person
+
+func (a ByAge) Len() int           { return len(a) }
+func (a ByAge) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByAge) Less(i, j int) bool { return a[i].Age < a[j].Age }
+```
+
+### 10.5 泛型接口约束 / Generic Interface Constraints (Go 1.18+)
+
+```go
+type Number interface {
+    int | int32 | int64 | float32 | float64
+}
+
+func Sum[T Number](numbers []T) T {
+    var sum T
+    for _, n := range numbers {
+        sum += n
+    }
+    return sum
+}
+
+// ~ 表示底层类型 / ~ means underlying type
+type SignedInteger interface {
+    ~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+```
+
+## 11. 错误处理 / Error Handling
+
+### 11.1 错误基础 / Error Basics
+
+```go
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+func main() {
+    // 创建错误 / Create errors
+    err1 := errors.New("something went wrong")
+    err2 := fmt.Errorf("failed to open %s", "file.txt")
+    
+    // 错误检查模式 / Error checking pattern
+    result, err := doSomething()
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    fmt.Println("Result:", result)
+}
+
+func doSomething() (string, error) {
+    return "", errors.New("operation failed")
+}
+```
+
+### 11.2 自定义错误类型 / Custom Error Types
+
+```go
+type ValidationError struct {
+    Field   string
+    Message string
+}
+
+func (e ValidationError) Error() string {
+    return fmt.Sprintf("validation error: %s %s", e.Field, e.Message)
+}
+
+// 哨兵错误 / Sentinel errors
+var (
+    ErrNotFound     = errors.New("not found")
+    ErrUnauthorized = errors.New("unauthorized")
+)
+```
+
+### 11.3 错误包装 (Go 1.13+) / Error Wrapping
+
+```go
+func readConfig(filename string) error {
+    _, err := os.ReadFile(filename)
+    if err != nil {
+        return fmt.Errorf("read config: %w", err)  // 使用 %w 包装
+    }
+    return nil
+}
+
+func main() {
+    err := readConfig("config.json")
+    
+    // errors.Is - 检查错误链
+    if errors.Is(err, os.ErrNotExist) {
+        fmt.Println("File not found")
+    }
+    
+    // errors.As - 提取特定错误类型
+    var pathErr *os.PathError
+    if errors.As(err, &pathErr) {
+        fmt.Println("Path:", pathErr.Path)
+    }
+    
+    // errors.Unwrap - 获取被包装的错误
+    unwrapped := errors.Unwrap(err)
+}
+```
+
+### 11.4 错误处理模式 / Error Handling Patterns
+
+```go
+// 模式1: 提前返回 / Early return
+func processFile(filename string) error {
+    file, err := os.Open(filename)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+    // ...
+    return nil
+}
+
+// 模式2: 错误聚合 (Go 1.20+) / Error aggregation
+func validate(form Form) error {
+    var errs []error
+    if form.Name == "" {
+        errs = append(errs, errors.New("name required"))
+    }
+    if form.Email == "" {
+        errs = append(errs, errors.New("email required"))
+    }
+    return errors.Join(errs...)
+}
+
+// 模式3: 重试 / Retry
+func withRetry(attempts int, fn func() error) error {
+    var lastErr error
+    for i := 0; i < attempts; i++ {
+        if err := fn(); err != nil {
+            lastErr = err
+            continue
+        }
+        return nil
+    }
+    return lastErr
+}
+```
+
+### 11.5 panic 和 recover / panic & recover
+
+```go
+func main() {
+    // recover 必须在 defer 中调用
+    defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered:", r)
+        }
+    }()
+    
+    panic("something terrible")
+}
+
+// 安全调用 / Safe call
+func safeCall(fn func()) (err error) {
+    defer func() {
+        if r := recover(); r != nil {
+            err = fmt.Errorf("panic: %v", r)
+        }
+    }()
+    fn()
+    return nil
+}
+```
+
+### 11.6 最佳实践 / Best Practices
+
+```go
+// 1. 总是检查错误
+result, err := mightFail()
+if err != nil {
+    return fmt.Errorf("context: %w", err)
+}
+
+// 2. 添加上下文
+return fmt.Errorf("failed to process user %d: %w", userID, err)
+
+// 3. 使用定义的错误变量
+var ErrNotFound = errors.New("not found")
+if errors.Is(err, ErrNotFound) { ... }
+
+// 4. 错误只处理一次 (要么记录日志，要么返回，不要两者都做)
+
+// 5. 使用 defer 清理资源
+file, err := os.Open(name)
+if err != nil {
+    return err
+}
+defer file.Close()
+```
